@@ -16,7 +16,6 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="firebase-config.js"></script>
   <style>
-    /* 彈窗 Modal 樣式 */
     .modal-overlay {
       position: fixed;
       top: 0; left: 0; width: 100%; height: 100%;
@@ -43,9 +42,9 @@
       <span>密室逃脫《失落的智慧金鑰》主控大螢幕</span>
     </div>
     
-    <!-- 右側教師快速控制列 -->
+    <!-- 右側教師控制區域 -->
     <div style="display: flex; gap: 0.75rem; align-items: center;">
-      <label style="font-size: 0.85rem; color: var(--text-muted);">錄取名額：</label>
+      <label style="font-size: 0.85rem; color: var(--text-muted);">獲勝名額：</label>
       <select id="select-winning-quota" class="input-field" style="width: auto; margin: 0; padding: 0.4rem 0.8rem; font-size: 0.9rem;">
         <option value="1">前 1 名</option>
         <option value="2">前 2 名</option>
@@ -59,11 +58,11 @@
       </button>
 
       <button id="btn-reset-game" class="btn btn-danger" style="width: auto; padding: 0.4rem 1rem; font-size: 0.9rem;">
-        🔄 重置
+        🧹 清空報到資料庫
       </button>
 
-      <button id="btn-open-qbank" class="btn btn-primary" style="width: auto; padding: 0.4rem 1rem; font-size: 0.9rem;">
-        📚 題庫管理 (Excel)
+      <button id="btn-open-qbank" class="btn btn-primary" style="width: auto; padding: 0.4rem 1rem; font-size: 0.9rem; background: #334155;">
+        🔒 題庫管理 (後台)
       </button>
 
       <div id="game-timer" style="font-size: 1.4rem; font-weight: 800; color: var(--gold); font-family: monospace; min-width: 70px; text-align: right;">00:00</div>
@@ -76,7 +75,7 @@
     <div>
       <div class="card" style="text-align: center; padding: 1.25rem;">
         <h3 style="font-size: 1.1rem; color: var(--gold); margin-bottom: 0.5rem;">📱 掃碼進入遊戲</h3>
-        <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.75rem;">請各組代表掃描 QR Code 並輸入隊名：</p>
+        <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.75rem;">請各組代表掃描 QR Code 輸入隊名：</p>
         
         <div id="dashboard-qrcode" style="background: white; padding: 0.75rem; display: inline-block; border-radius: 10px; margin-bottom: 0.5rem;"></div>
         
@@ -100,7 +99,7 @@
       <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 1rem;">
         <div class="stat-card" style="padding: 0.8rem;">
           <div class="val" id="stat-total-teams">0</div>
-          <div class="lbl">參賽總組數</div>
+          <div class="lbl">已報到組數</div>
         </div>
         <div class="stat-card" style="padding: 0.8rem;">
           <div class="val" id="stat-completed-teams" style="color: var(--success);">0</div>
@@ -111,8 +110,8 @@
           <div class="lbl">錄取獲勝名額</div>
         </div>
         <div class="stat-card" style="padding: 0.8rem;">
-          <div class="val" id="stat-status-badge" style="color: var(--secondary); font-size: 1.4rem;">等待開賽</div>
-          <div class="lbl">當前狀態 (關卡分流中)</div>
+          <div class="val" id="stat-status-badge" style="color: var(--secondary); font-size: 1.4rem;">⏳ 等待報到中</div>
+          <div class="lbl">比賽狀態 (等待老師開賽)</div>
         </div>
       </div>
 
@@ -123,7 +122,7 @@
             <th style="width: 70px;">名次</th>
             <th style="width: 220px;">組別 / 隊伍名稱</th>
             <th style="width: 200px;">當前關卡與地點</th>
-            <th>闖關進度 ( 隨機分流路線 1 ~ 5 關 )</th>
+            <th>闖關進度 ( 隨機亂序路線 1 ~ 5 關 )</th>
             <th style="width: 120px; text-align: right;">累積耗時</th>
           </tr>
         </thead>
@@ -135,16 +134,16 @@
 
   </div>
 
-  <!-- 📚 題庫管理彈窗 Modal -->
+  <!-- 📚 題庫管理彈窗 Modal (需輸入密碼 280282) -->
   <div id="qbank-modal" class="modal-overlay">
     <div class="modal-content">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-        <h2 style="color: var(--gold); font-size: 1.3rem;">📚 題庫管理與 Excel 匯入/匯出</h2>
+        <h2 style="color: var(--gold); font-size: 1.3rem;">⚙️ 後台題庫管理與 Excel 匯入/匯出</h2>
         <button id="btn-close-qbank" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">✕</button>
       </div>
 
       <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
-        您可以直接下載目前的題庫 Excel 檔案進行修改，修改後再匯入系統；或在下方表格中直接修改關卡資訊：
+        管理員權限驗證通過。您可以在此下載 Excel 檔案編輯，或在下方直接修訂關卡內容：
       </p>
 
       <div style="display: flex; gap: 1rem; margin-bottom: 1.25rem;">
@@ -170,7 +169,6 @@
     let timerInterval = null;
     let hasFiredConfetti = false;
 
-    // 取得學生端連線網址
     function getStudentUrl() {
       const currentUrl = window.location.href;
       const baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/'));
@@ -209,14 +207,13 @@
 
       const badgeText = document.getElementById('stat-status-badge');
       if (state.status === 'playing') {
-        badgeText.textContent = '🚀 比賽中';
+        badgeText.textContent = '🚀 比賽進行中';
         badgeText.style.color = 'var(--success)';
       } else {
-        badgeText.textContent = '⏳ 等待開賽';
+        badgeText.textContent = '⏳ 等待學生報到與開賽';
         badgeText.style.color = 'var(--secondary)';
       }
 
-      // 更新已進場隊伍清單
       const regList = document.getElementById('registered-teams-list');
       if (teams.length === 0) {
         regList.innerHTML = `<div style="color: var(--text-muted); text-align: center; padding: 1rem;">等待學生掃碼進場中...</div>`;
@@ -241,6 +238,11 @@
       const tbody = document.getElementById('leaderboard-body');
       tbody.innerHTML = '';
 
+      if (sortedTeams.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:2rem;">尚無隊伍報到，請掃描左側 QR Code 開始報到！</td></tr>`;
+        return;
+      }
+
       sortedTeams.forEach((team, index) => {
         const rank = index + 1;
         const isWinner = rank <= state.winningQuota && team.completed;
@@ -260,14 +262,15 @@
 
         const progressPct = team.completed ? 100 : Math.min(100, Math.round((team.stepIndex / 5) * 100));
 
-        // 取得當前關卡地點名稱
-        let locationText = "準備中";
-        if (!team.completed && team.stepIndex < team.levelSequence.length) {
-          const qId = team.levelSequence[team.stepIndex];
-          const qObj = (state.questions || DEFAULT_GAME_LEVELS).find(q => q.id === qId);
-          if (qObj) locationText = `📍 ${qObj.location.split(' ')[0]} (第${team.stepIndex + 1}關)`;
-        } else if (team.completed) {
-          locationText = "🏆 終點通關";
+        let locationText = "等待開賽";
+        if (state.status === 'playing') {
+          if (!team.completed && team.stepIndex < team.levelSequence.length) {
+            const qId = team.levelSequence[team.stepIndex];
+            const qObj = (state.questions || DEFAULT_GAME_LEVELS).find(q => q.id === qId);
+            if (qObj) locationText = `📍 ${qObj.location.split(' ')[0]} (第${team.stepIndex + 1}關)`;
+          } else if (team.completed) {
+            locationText = "🏆 終點通關";
+          }
         }
 
         tr.innerHTML = `
@@ -296,29 +299,33 @@
       });
     }
 
-    // 教師列控制監聽
     document.getElementById('select-winning-quota').addEventListener('change', (e) => {
       window.gameEngine.setWinningQuota(e.target.value);
     });
 
     document.getElementById('btn-start-game').addEventListener('click', () => {
       window.gameEngine.startGame();
-      alert('🚀 密室逃脫已正式開始！計時中……');
+      alert('🚀 密室逃脫已正式開始！學生手機畫面已跳轉開放解謎！');
     });
 
     document.getElementById('btn-reset-game').addEventListener('click', () => {
-      if (confirm('⚠️ 確定要重置比賽紀錄嗎？這將清除目前的團隊進場紀錄。')) {
+      if (confirm('⚠️ 確定要【清空報到資料庫】嗎？這將清除目前所有已進場的隊伍紀錄，恢復為初始無隊伍狀態。')) {
         hasFiredConfetti = false;
         window.gameEngine.resetGame();
-        alert('🔄 已重置所有比賽紀錄！');
+        alert('🧹 已成功清空資料庫與報到紀錄！');
       }
     });
 
-    // 題庫管理彈窗邏輯
+    // 後台密碼保護：需輸入密碼 280282 才可以進入題庫管理
     const modal = document.getElementById('qbank-modal');
     document.getElementById('btn-open-qbank').addEventListener('click', () => {
-      renderQBankEditor(window.gameEngine.state.questions || DEFAULT_GAME_LEVELS);
-      modal.classList.add('active');
+      const inputPwd = prompt("🔑 請輸入後台管理密碼：");
+      if (window.gameEngine.verifyAdminPassword(inputPwd)) {
+        renderQBankEditor(window.gameEngine.state.questions || DEFAULT_GAME_LEVELS);
+        modal.classList.add('active');
+      } else {
+        alert("❌ 密碼錯誤，無法開啟後台題庫管理！");
+      }
     });
 
     document.getElementById('btn-close-qbank').addEventListener('click', () => {
@@ -376,7 +383,6 @@
       modal.classList.remove('active');
     });
 
-    // 匯出 Excel
     document.getElementById('btn-export-excel').addEventListener('click', () => {
       const questions = window.gameEngine.state.questions || DEFAULT_GAME_LEVELS;
       const exportData = questions.map(q => ({
@@ -393,7 +399,6 @@
       XLSX.writeFile(workbook, "員林家商圖書館密室逃脫題庫.xlsx");
     });
 
-    // 匯入 Excel
     document.getElementById('input-excel-file').addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;

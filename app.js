@@ -1,13 +1,11 @@
 /**
- * 員林家商圖書館密室逃脫 - 全域通訊與狀態控制核心 (App Core v2.0)
- * 新增特色：
- * 1. 學生輸入隊名自動分配組別
- * 2. 關卡 1~4 隨機分流亂序（第 5 關固定為終極關卡），避免人多壅擠
- * 3. 整合 Excel (.xlsx / .csv) 題庫匯入與匯出管理
- * 4. 大螢幕控場與教師面板一體化
+ * 員林家商圖書館密室逃脫 - 全域通訊與狀態控制核心 (App Core v2.1)
+ * Bug 修改與新功能：
+ * 1. 學生輸入隊名後進入「等待區」，需等待教師按下「開始遊戲」才開放解謎。
+ * 2. 初始與重置時預設 teams 為空物件 {}，不再預載假隊伍。
+ * 3. 題庫管理新增密碼驗證權限（密碼：280282）。
  */
 
-// 預設員林家商圖書館題庫
 const DEFAULT_GAME_LEVELS = [
   {
     id: 1,
@@ -52,11 +50,11 @@ const DEFAULT_GAME_LEVELS = [
 ];
 
 const DEFAULT_STATE = {
-  status: 'setup', // 'setup' | 'playing' | 'ended'
-  winningQuota: 3, // 錄取獲勝前 N 名
+  status: 'setup', // 'setup' (等待開賽) | 'playing' (比賽中) | 'ended'
+  winningQuota: 3,
   startTime: null,
   questions: DEFAULT_GAME_LEVELS,
-  teams: {}
+  teams: {} // 預設完全空白，無預設 12 組
 };
 
 class GameEngine {
@@ -127,7 +125,6 @@ class GameEngine {
     this.listeners.forEach(cb => cb(this.state));
   }
 
-  // 隨機洗牌陣列（用於關卡 1~4 亂序分流）
   shuffleArray(array) {
     const arr = [...array];
     for (let i = arr.length - 1; i > 0; i--) {
@@ -137,25 +134,24 @@ class GameEngine {
     return arr;
   }
 
-  // 學生端：自動分配組別與隨機闖關路線
+  // 學生端報到：自動依進場順序給予組別號碼 (第 1 組, 第 2 組...)
   autoRegisterTeam(teamName, members) {
     const teamKeys = Object.keys(this.state.teams);
     const nextGroupNum = teamKeys.length + 1;
     const teamId = `team_${nextGroupNum}`;
     const defaultName = teamName ? teamName.trim() : `第 ${nextGroupNum} 組`;
 
-    // 隨機產生關卡 1~4 順序，第 5 關固定在最後
     const baseLevels = [1, 2, 3, 4];
     const shuffledLevels = this.shuffleArray(baseLevels);
-    shuffledLevels.push(5); // 第 5 關永遠最後
+    shuffledLevels.push(5);
 
     const newTeam = {
       id: teamId,
       groupNum: nextGroupNum,
       name: defaultName,
       members: members ? members.trim() : "",
-      levelSequence: shuffledLevels, // 例如 [3, 1, 4, 2, 5]
-      stepIndex: 0, // 目前進行到第幾個順序 (0~4)
+      levelSequence: shuffledLevels,
+      stepIndex: 0,
       completed: false,
       finishTime: null,
       levelTimes: {},
@@ -167,20 +163,19 @@ class GameEngine {
     return newTeam;
   }
 
-  // 教師端：修改錄取名額
   setWinningQuota(quota) {
     this.state.winningQuota = parseInt(quota) || 3;
     this.saveState();
   }
 
-  // 教師端：開始遊戲
+  // 教師按下「開始遊戲」：狀態變更為 'playing'，全場解鎖題目
   startGame() {
     this.state.status = 'playing';
     this.state.startTime = Date.now();
     this.saveState();
   }
 
-  // 教師端：重置遊戲
+  // 完全清空資料庫與隊伍
   resetGame() {
     this.state.status = 'setup';
     this.state.startTime = null;
@@ -188,13 +183,17 @@ class GameEngine {
     this.saveState();
   }
 
-  // 學生端：取得當前關卡資訊
+  // 驗證後台管理密碼
+  verifyAdminPassword(password) {
+    return (password || '').trim() === '280282';
+  }
+
   getCurrentQuestionForTeam(teamId) {
     const team = this.state.teams[teamId];
     if (!team) return null;
 
     if (team.completed || team.stepIndex >= team.levelSequence.length) {
-      return null; // 已完賽
+      return null;
     }
 
     const questionId = team.levelSequence[team.stepIndex];
@@ -202,13 +201,16 @@ class GameEngine {
     
     return {
       questionObj: questionObj || DEFAULT_GAME_LEVELS[0],
-      stepNumber: team.stepIndex + 1, // 顯示第 1~5 關進度
+      stepNumber: team.stepIndex + 1,
       totalSteps: 5
     };
   }
 
-  // 學生端：驗證密碼
   submitAnswer(teamId, answerInput) {
+    if (this.state.status !== 'playing') {
+      return { success: false, message: "比賽尚未開始，請耐心等待老師開啟！" };
+    }
+
     const team = this.state.teams[teamId];
     if (!team) return { success: false, message: "找不到該組別！" };
     if (team.completed) return { success: false, message: "您的團隊已通關！" };
@@ -241,26 +243,21 @@ class GameEngine {
     }
   }
 
-  // 即時排行榜動態排序
   getSortedLeaderboard() {
     const teamsList = Object.values(this.state.teams);
 
     teamsList.sort((a, b) => {
-      // 1. 已通關者排前面
       if (a.completed && !b.completed) return -1;
       if (!a.completed && b.completed) return 1;
 
-      // 2. 都完賽者，按總耗時由少到多排序
       if (a.completed && b.completed) {
         return (a.finishTime - a.startTime) - (b.finishTime - b.startTime);
       }
 
-      // 3. 未完賽者，按已完成步數 (stepIndex) 由高到低排序
       if (a.stepIndex !== b.stepIndex) {
         return b.stepIndex - a.stepIndex;
       }
 
-      // 4. 步數相同者，按進入該關卡的時間由早到晚排序
       const aLastTime = a.levelTimes[a.stepIndex] || a.startTime || Infinity;
       const bLastTime = b.levelTimes[b.stepIndex] || b.startTime || Infinity;
       return aLastTime - bLastTime;
@@ -269,7 +266,6 @@ class GameEngine {
     return teamsList;
   }
 
-  // 題庫管理：更新題庫
   updateQuestions(newQuestions) {
     this.state.questions = newQuestions;
     this.saveState();

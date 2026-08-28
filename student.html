@@ -24,13 +24,13 @@
 
   <div class="student-container">
     
-    <!-- 階段 1：輸入隊名（系統自動分配組別） -->
+    <!-- 階段 1：輸入隊名 -->
     <div id="step-register" class="card">
       <h2 style="font-size: 1.3rem; margin-bottom: 0.5rem; color: var(--secondary); text-align: center;">
         👥 輸入隊名開始挑戰
       </h2>
       <p style="font-size: 0.85rem; color: var(--text-muted); text-align: center; margin-bottom: 1.25rem;">
-        請每組（2～4 人）由一名代表輸入隊名即可，系統將自動為您分配組別並進行人流分流：
+        請每組（2～4 人）由一名代表輸入隊名，系統將自動分配組別：
       </p>
 
       <label style="font-size: 0.9rem; font-weight: 600;">隊伍名稱 (隊名)：</label>
@@ -44,7 +44,23 @@
       </button>
     </div>
 
-    <!-- 階段 2：闖關解謎卡（依分配路線分流） -->
+    <!-- 階段 2：等待開賽等待區 (Waiting Lounge) -->
+    <div id="step-waiting" class="card" style="display: none; text-align: center; padding: 2.5rem 1.5rem;">
+      <div style="font-size: 3.5rem; margin-bottom: 1rem;" class="animate-pulse">⏳</div>
+      <h2 style="font-size: 1.4rem; color: var(--gold); margin-bottom: 0.5rem;" id="waiting-team-title">
+        【第 1 組】報到成功！
+      </h2>
+      <p style="font-size: 0.95rem; color: var(--text-light); margin-bottom: 1.5rem;">
+        已進入準備等待區！<br>
+        <span style="color: var(--secondary); font-weight: 700;">請觀看大螢幕，等待老師按下【開始遊戲】……</span>
+      </p>
+
+      <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 10px; font-size: 0.85rem; color: var(--text-muted);">
+        💡 提示：開始遊戲後，畫面將自動跳轉至您的第一個密室關卡，祝您奪得第一名！
+      </div>
+    </div>
+
+    <!-- 階段 3：闖關解謎卡 -->
     <div id="step-game" class="card" style="display: none;">
       
       <!-- 頂部進度條與地點提示 -->
@@ -75,7 +91,7 @@
       </button>
     </div>
 
-    <!-- 階段 3：終極通關卡 -->
+    <!-- 階段 4：終極通關卡 -->
     <div id="step-complete" class="card" style="display: none; text-align: center; padding: 2rem 1rem;">
       <div style="font-size: 4rem; margin-bottom: 0.5rem;">🎉</div>
       <h2 style="font-size: 1.6rem; color: var(--gold); margin-bottom: 0.5rem;">恭喜全卡通關！</h2>
@@ -107,6 +123,7 @@
     function renderStudentUI(state) {
       if (!currentTeamId || !state.teams[currentTeamId]) {
         document.getElementById('step-register').style.display = 'block';
+        document.getElementById('step-waiting').style.display = 'none';
         document.getElementById('step-game').style.display = 'none';
         document.getElementById('step-complete').style.display = 'none';
         document.getElementById('team-header-info').textContent = "未登錄隊伍";
@@ -116,8 +133,10 @@
       const team = state.teams[currentTeamId];
       document.getElementById('team-header-info').textContent = `👥 【第 ${team.groupNum} 組】 ${team.name}`;
 
+      // 如果全卡通關
       if (team.completed) {
         document.getElementById('step-register').style.display = 'none';
+        document.getElementById('step-waiting').style.display = 'none';
         document.getElementById('step-game').style.display = 'none';
         document.getElementById('step-complete').style.display = 'block';
 
@@ -134,8 +153,19 @@
         return;
       }
 
-      // 闖關解謎畫面
+      // 如果老師尚未按下「開始遊戲」 ➔ 進入【等待區】
+      if (state.status !== 'playing') {
+        document.getElementById('step-register').style.display = 'none';
+        document.getElementById('step-waiting').style.display = 'block';
+        document.getElementById('step-game').style.display = 'none';
+        document.getElementById('step-complete').style.display = 'none';
+        document.getElementById('waiting-team-title').textContent = `【第 ${team.groupNum} 組 - ${team.name}】報到成功！`;
+        return;
+      }
+
+      // 比賽正式開始 ➔ 開放解謎畫面
       document.getElementById('step-register').style.display = 'none';
+      document.getElementById('step-waiting').style.display = 'none';
       document.getElementById('step-game').style.display = 'block';
       document.getElementById('step-complete').style.display = 'none';
 
@@ -162,7 +192,6 @@
       currentTeamId = newTeam.id;
       localStorage.setItem('ylhcvs_current_team_id', currentTeamId);
       
-      alert(`🎉 報到成功！您被分配為【第 ${newTeam.groupNum} 組】\n系統已為您的團隊安排專屬路線，避免與其他隊伍擠在同一區域！`);
       renderStudentUI(window.gameEngine.state);
     });
 
