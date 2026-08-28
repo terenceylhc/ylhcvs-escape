@@ -1,9 +1,8 @@
 /**
- * 員林家商圖書館密室逃脫 - 全域通訊與狀態控制核心 (App Core v2.1)
- * Bug 修改與新功能：
- * 1. 學生輸入隊名後進入「等待區」，需等待教師按下「開始遊戲」才開放解謎。
- * 2. 初始與重置時預設 teams 為空物件 {}，不再預載假隊伍。
- * 3. 題庫管理新增密碼驗證權限（密碼：280282）。
+ * 員林家商圖書館密室逃脫 - 全域通訊與狀態控制核心 (App Core v2.2 - 防錯修復版)
+ * 修正：
+ * 1. 加入相容防護 (Defensive Checks)，避免舊資料結構缺少 levelSequence 導致 JS 崩潰卡住。
+ * 2. 開賽時自動同步所有隊伍的比賽起算時間 (startTime)。
  */
 
 const DEFAULT_GAME_LEVELS = [
@@ -50,11 +49,11 @@ const DEFAULT_GAME_LEVELS = [
 ];
 
 const DEFAULT_STATE = {
-  status: 'setup', // 'setup' (等待開賽) | 'playing' (比賽中) | 'ended'
+  status: 'setup', // 'setup' | 'playing' | 'ended'
   winningQuota: 3,
   startTime: null,
   questions: DEFAULT_GAME_LEVELS,
-  teams: {} // 預設完全空白，無預設 12 組
+  teams: {}
 };
 
 class GameEngine {
@@ -68,10 +67,31 @@ class GameEngine {
 
     this.channel.onmessage = (event) => {
       if (event.data && event.data.type === 'STATE_UPDATE') {
-        this.state = event.data.state;
+        this.state = this.sanitizeState(event.data.state);
         this.notifyListeners();
       }
     };
+  }
+
+  // 舊資料結構自動修復（避免欄位缺少導致 JS 報錯）
+  sanitizeState(rawState) {
+    if (!rawState) return JSON.parse(JSON.stringify(DEFAULT_STATE));
+    const state = rawState;
+    if (!state.teams) state.teams = {};
+    if (!state.questions) state.questions = DEFAULT_GAME_LEVELS;
+    if (!state.status) state.status = 'setup';
+    if (!state.winningQuota) state.winningQuota = 3;
+
+    // 確保每支隊伍都有防護預設欄位
+    Object.values(state.teams).forEach(team => {
+      if (!team.levelSequence || !Array.isArray(team.levelSequence) || team.levelSequence.length === 0) {
+        team.levelSequence = [1, 2, 3, 4, 5];
+      }
+      if (typeof team.stepIndex !== 'number') team.stepIndex = 0;
+      if (!team.levelTimes) team.levelTimes = {};
+    });
+
+    return state;
   }
 
   initFirebase() {
@@ -86,7 +106,7 @@ class GameEngine {
         this.firebaseDb.ref('ylhcvs_game_state').on('value', (snapshot) => {
           const val = snapshot.val();
           if (val) {
-            this.state = val;
+            this.state = this.sanitizeState(val);
             localStorage.setItem('ylhcvs_escape_state', JSON.stringify(this.state));
             this.notifyListeners();
           }
@@ -100,12 +120,15 @@ class GameEngine {
   loadState() {
     const saved = localStorage.getItem('ylhcvs_escape_state');
     if (saved) {
-      try { return JSON.parse(saved); } catch (e) {}
+      try { 
+        return this.sanitizeState(JSON.parse(saved)); 
+      } catch (e) {}
     }
     return JSON.parse(JSON.stringify(DEFAULT_STATE));
   }
 
   saveState() {
+    this.state = this.sanitizeState(this.state);
     localStorage.setItem('ylhcvs_escape_state', JSON.stringify(this.state));
     this.channel.postMessage({ type: 'STATE_UPDATE', state: this.state });
     
@@ -134,7 +157,6 @@ class GameEngine {
     return arr;
   }
 
-  // 學生端報到：自動依進場順序給予組別號碼 (第 1 組, 第 2 組...)
   autoRegisterTeam(teamName, members) {
     const teamKeys = Object.keys(this.state.teams);
     const nextGroupNum = teamKeys.length + 1;
@@ -168,14 +190,20 @@ class GameEngine {
     this.saveState();
   }
 
-  // 教師按下「開始遊戲」：狀態變更為 'playing'，全場解鎖題目
+  // 開始遊戲：更新比賽狀態與全員起算時間
   startGame() {
+    const now = Date.now();
     this.state.status = 'playing';
-    this.state.startTime = Date.now();
+    this.state.startTime = now;
+
+    // 將所有已進場隊伍的計時起點同步更新為當下
+    Object.values(this.state.teams).forEach(team => {
+      team.startTime = now;
+    });
+
     this.saveState();
   }
 
-  // 完全清空資料庫與隊伍
   resetGame() {
     this.state.status = 'setup';
     this.state.startTime = null;
@@ -183,7 +211,6 @@ class GameEngine {
     this.saveState();
   }
 
-  // 驗證後台管理密碼
   verifyAdminPassword(password) {
     return (password || '').trim() === '280282';
   }
@@ -192,30 +219,35 @@ class GameEngine {
     const team = this.state.teams[teamId];
     if (!team) return null;
 
-    if (team.completed || team.stepIndex >= team.levelSequence.length) {
+    const seq = (team.levelSequence && team.levelSequence.length) ? team.levelSequence : [1, 2, 3, 4, 5];
+    const stepIdx = team.stepIndex || 0;
+
+    if (team.completed || stepIdx >= seq.length) {
       return null;
     }
 
-    const questionId = team.levelSequence[team.stepIndex];
+    const questionId = seq[stepIdx];
     const questionObj = (this.state.questions || DEFAULT_GAME_LEVELS).find(q => q.id === questionId);
     
     return {
       questionObj: questionObj || DEFAULT_GAME_LEVELS[0],
-      stepNumber: team.stepIndex + 1,
+      stepNumber: stepIdx + 1,
       totalSteps: 5
     };
   }
 
   submitAnswer(teamId, answerInput) {
     if (this.state.status !== 'playing') {
-      return { success: false, message: "比賽尚未開始，請耐心等待老師開啟！" };
+      return { success: false, message: "比賽尚未開始，請等待老師開啟！" };
     }
 
     const team = this.state.teams[teamId];
     if (!team) return { success: false, message: "找不到該組別！" };
     if (team.completed) return { success: false, message: "您的團隊已通關！" };
 
-    const currentQuestionId = team.levelSequence[team.stepIndex];
+    const seq = (team.levelSequence && team.levelSequence.length) ? team.levelSequence : [1, 2, 3, 4, 5];
+    const stepIdx = team.stepIndex || 0;
+    const currentQuestionId = seq[stepIdx];
     const currentQ = (this.state.questions || DEFAULT_GAME_LEVELS).find(q => q.id === currentQuestionId);
     
     if (!currentQ) return { success: false, message: "關卡資料異常" };
@@ -223,9 +255,8 @@ class GameEngine {
     const cleanInput = (answerInput || '').trim();
     if (cleanInput === currentQ.answer) {
       const now = Date.now();
-      team.levelTimes[team.stepIndex + 1] = now;
-
-      team.stepIndex += 1;
+      team.stepIndex = stepIdx + 1;
+      team.levelTimes[team.stepIndex] = now;
 
       if (team.stepIndex >= 5) {
         team.completed = true;
@@ -244,9 +275,12 @@ class GameEngine {
   }
 
   getSortedLeaderboard() {
-    const teamsList = Object.values(this.state.teams);
+    const teamsList = Object.values(this.state.teams || {});
 
     teamsList.sort((a, b) => {
+      const aStep = a.stepIndex || 0;
+      const bStep = b.stepIndex || 0;
+
       if (a.completed && !b.completed) return -1;
       if (!a.completed && b.completed) return 1;
 
@@ -254,12 +288,12 @@ class GameEngine {
         return (a.finishTime - a.startTime) - (b.finishTime - b.startTime);
       }
 
-      if (a.stepIndex !== b.stepIndex) {
-        return b.stepIndex - a.stepIndex;
+      if (aStep !== bStep) {
+        return bStep - aStep;
       }
 
-      const aLastTime = a.levelTimes[a.stepIndex] || a.startTime || Infinity;
-      const bLastTime = b.levelTimes[b.stepIndex] || b.startTime || Infinity;
+      const aLastTime = a.levelTimes ? (a.levelTimes[aStep] || a.startTime || Infinity) : Infinity;
+      const bLastTime = b.levelTimes ? (b.levelTimes[bStep] || b.startTime || Infinity) : Infinity;
       return aLastTime - bLastTime;
     });
 

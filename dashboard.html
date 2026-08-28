@@ -111,7 +111,7 @@
         </div>
         <div class="stat-card" style="padding: 0.8rem;">
           <div class="val" id="stat-status-badge" style="color: var(--secondary); font-size: 1.4rem;">⏳ 等待報到中</div>
-          <div class="lbl">比賽狀態 (等待老師開賽)</div>
+          <div class="lbl">比賽狀態</div>
         </div>
       </div>
 
@@ -199,11 +199,13 @@
     }
 
     function renderDashboard(state) {
+      if (!state || !state.teams) return;
+
       const teams = Object.values(state.teams);
       document.getElementById('stat-total-teams').textContent = teams.length;
       document.getElementById('stat-registered-count').textContent = teams.length;
-      document.getElementById('stat-winning-quota').textContent = `前 ${state.winningQuota} 名`;
-      document.getElementById('select-winning-quota').value = state.winningQuota;
+      document.getElementById('stat-winning-quota').textContent = `前 ${state.winningQuota || 3} 名`;
+      document.getElementById('select-winning-quota').value = state.winningQuota || 3;
 
       const badgeText = document.getElementById('stat-status-badge');
       if (state.status === 'playing') {
@@ -220,8 +222,8 @@
       } else {
         regList.innerHTML = teams.map(t => `
           <div style="padding: 0.4rem 0.6rem; background: rgba(255,255,255,0.05); margin-bottom: 0.4rem; border-radius: 6px; display: flex; justify-content: space-between;">
-            <span style="font-weight: 700; color: var(--gold);">【第 ${t.groupNum} 組】</span>
-            <span>${t.name}</span>
+            <span style="font-weight: 700; color: var(--gold);">【第 ${t.groupNum || '?'} 組】</span>
+            <span>${t.name || '未命名'}</span>
           </div>
         `).join('');
       }
@@ -230,7 +232,7 @@
       const completedCount = sortedTeams.filter(t => t.completed).length;
       document.getElementById('stat-completed-teams').textContent = completedCount;
 
-      if (completedCount >= state.winningQuota && !hasFiredConfetti && state.status === 'playing') {
+      if (completedCount >= (state.winningQuota || 3) && !hasFiredConfetti && state.status === 'playing') {
         hasFiredConfetti = true;
         confetti({ particleCount: 180, spread: 90, origin: { y: 0.6 } });
       }
@@ -245,7 +247,7 @@
 
       sortedTeams.forEach((team, index) => {
         const rank = index + 1;
-        const isWinner = rank <= state.winningQuota && team.completed;
+        const isWinner = rank <= (state.winningQuota || 3) && team.completed;
         const tr = document.createElement('tr');
         tr.className = `leaderboard-row ${isWinner ? 'row-winner' : ''}`;
 
@@ -255,19 +257,24 @@
         else if (rank === 3) rankHtml = `<div class="rank-badge rank-3">3</div>`;
 
         let timeStr = "--:--";
-        if (team.startTime) {
+        if (team.startTime && state.status === 'playing') {
           const endTime = team.finishTime || Date.now();
           timeStr = formatTime(endTime - team.startTime);
+        } else if (team.completed && team.finishTime && team.startTime) {
+          timeStr = formatTime(team.finishTime - team.startTime);
         }
 
-        const progressPct = team.completed ? 100 : Math.min(100, Math.round((team.stepIndex / 5) * 100));
+        const stepIdx = typeof team.stepIndex === 'number' ? team.stepIndex : 0;
+        const progressPct = team.completed ? 100 : Math.min(100, Math.round((stepIdx / 5) * 100));
 
-        let locationText = "等待開賽";
+        const seq = (team.levelSequence && team.levelSequence.length) ? team.levelSequence : [1, 2, 3, 4, 5];
+        let locationText = "⏳ 等待開賽";
         if (state.status === 'playing') {
-          if (!team.completed && team.stepIndex < team.levelSequence.length) {
-            const qId = team.levelSequence[team.stepIndex];
+          if (!team.completed && stepIdx < seq.length) {
+            const qId = seq[stepIdx];
             const qObj = (state.questions || DEFAULT_GAME_LEVELS).find(q => q.id === qId);
-            if (qObj) locationText = `📍 ${qObj.location.split(' ')[0]} (第${team.stepIndex + 1}關)`;
+            const locName = qObj ? (qObj.location ? qObj.location.split(' ')[0] : '圖書館') : '圖書館';
+            locationText = `📍 ${locName} (第${stepIdx + 1}關)`;
           } else if (team.completed) {
             locationText = "🏆 終點通關";
           }
@@ -277,14 +284,14 @@
           <td>${rankHtml}</td>
           <td>
             <div style="font-weight: 700; font-size: 1.05rem; color: #fff;">
-              <span style="color: var(--gold);">【第 ${team.groupNum} 組】</span> ${team.name}
+              <span style="color: var(--gold);">【第 ${team.groupNum || '?'} 組】</span> ${team.name || '未命名'}
             </div>
             <div style="font-size: 0.75rem; color: var(--text-muted);">${team.members || '組員未填寫'}</div>
           </td>
           <td style="font-size: 0.85rem; font-weight: 600; color: var(--secondary);">${locationText}</td>
           <td>
             <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted); margin-bottom:0.25rem;">
-              <span>已解開 ${team.completed ? 5 : team.stepIndex} / 5 關</span>
+              <span>已解開 ${team.completed ? 5 : stepIdx} / 5 關</span>
               <span>${progressPct}%</span>
             </div>
             <div class="progress-bar-bg">
@@ -305,18 +312,17 @@
 
     document.getElementById('btn-start-game').addEventListener('click', () => {
       window.gameEngine.startGame();
-      alert('🚀 密室逃脫已正式開始！學生手機畫面已跳轉開放解謎！');
+      alert('🚀 密室逃脫已正式開始！學生手機畫面已同步跳轉開放解謎！');
     });
 
     document.getElementById('btn-reset-game').addEventListener('click', () => {
-      if (confirm('⚠️ 確定要【清空報到資料庫】嗎？這將清除目前所有已進場的隊伍紀錄，恢復為初始無隊伍狀態。')) {
+      if (confirm('⚠️ 確定要【清空報到資料庫】嗎？這將清除目前所有已進場的隊伍紀錄，恢復為 0 組。')) {
         hasFiredConfetti = false;
         window.gameEngine.resetGame();
         alert('🧹 已成功清空資料庫與報到紀錄！');
       }
     });
 
-    // 後台密碼保護：需輸入密碼 280282 才可以進入題庫管理
     const modal = document.getElementById('qbank-modal');
     document.getElementById('btn-open-qbank').addEventListener('click', () => {
       const inputPwd = prompt("🔑 請輸入後台管理密碼：");
@@ -349,10 +355,10 @@
             ${questions.map((q, idx) => `
               <tr class="leaderboard-row">
                 <td style="font-weight:700;">關卡 ${q.id}</td>
-                <td><input type="text" class="input-field q-title" data-idx="${idx}" value="${q.title}" style="margin:0; padding:0.4rem;"></td>
-                <td><input type="text" class="input-field q-location" data-idx="${idx}" value="${q.location}" style="margin:0; padding:0.4rem;"></td>
-                <td><input type="text" class="input-field q-answer" data-idx="${idx}" value="${q.answer}" style="margin:0; padding:0.4rem; text-align:center;"></td>
-                <td><input type="text" class="input-field q-hint" data-idx="${idx}" value="${q.hint}" style="margin:0; padding:0.4rem;"></td>
+                <td><input type="text" class="input-field q-title" data-idx="${idx}" value="${q.title || ''}" style="margin:0; padding:0.4rem;"></td>
+                <td><input type="text" class="input-field q-location" data-idx="${idx}" value="${q.location || ''}" style="margin:0; padding:0.4rem;"></td>
+                <td><input type="text" class="input-field q-answer" data-idx="${idx}" value="${q.answer || ''}" style="margin:0; padding:0.4rem; text-align:center;"></td>
+                <td><input type="text" class="input-field q-hint" data-idx="${idx}" value="${q.hint || ''}" style="margin:0; padding:0.4rem;"></td>
               </tr>
             `).join('')}
           </tbody>
@@ -432,7 +438,7 @@
       if (timerInterval) clearInterval(timerInterval);
       timerInterval = setInterval(() => {
         const state = window.gameEngine.state;
-        if (state.status === 'playing' && state.startTime) {
+        if (state && state.status === 'playing' && state.startTime) {
           document.getElementById('game-timer').textContent = formatTime(Date.now() - state.startTime);
           renderDashboard(state);
         }
