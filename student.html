@@ -18,46 +18,43 @@
       <span>🏫 員家圖書館密室逃脫</span>
     </div>
     <div id="team-header-info" style="font-size: 0.85rem; font-weight: 700; color: var(--gold);">
-      未登錄組別
+      未登錄隊伍
     </div>
   </nav>
 
   <div class="student-container">
     
-    <!-- 階段 1：組別登錄卡 -->
+    <!-- 階段 1：輸入隊名（系統自動分配組別） -->
     <div id="step-register" class="card">
       <h2 style="font-size: 1.3rem; margin-bottom: 0.5rem; color: var(--secondary); text-align: center;">
-        👥 1. 選擇/輸入組別
+        👥 輸入隊名開始挑戰
       </h2>
       <p style="font-size: 0.85rem; color: var(--text-muted); text-align: center; margin-bottom: 1.25rem;">
-        請每組（2～4 人）由一名代表輸入組別與成員姓名：
+        請每組（2～4 人）由一名代表輸入隊名即可，系統將自動為您分配組別並進行人流分流：
       </p>
 
-      <label style="font-size: 0.9rem; font-weight: 600;">選擇您的組別：</label>
-      <select id="select-team-id" class="input-field">
-        <!-- 動態載入組別 1~12 -->
-      </select>
+      <label style="font-size: 0.9rem; font-weight: 600;">隊伍名稱 (隊名)：</label>
+      <input type="text" id="input-team-name" class="input-field" placeholder="例如：員家勇士隊 / 閱讀學霸隊">
 
-      <label style="font-size: 0.9rem; font-weight: 600;">組別名稱 (可自訂)：</label>
-      <input type="text" id="input-team-name" class="input-field" placeholder="例如：員家第 3 組 / 閱讀學霸隊">
-
-      <label style="font-size: 0.9rem; font-weight: 600;">組員姓名 (以逗號分隔)：</label>
+      <label style="font-size: 0.9rem; font-weight: 600;">組員姓名 (以逗號分隔，選填)：</label>
       <input type="text" id="input-members" class="input-field" placeholder="例如：王小明, 張小華, 李小英">
 
-      <button id="btn-confirm-team" class="btn btn-primary">進入密室挑戰 🚀</button>
+      <button id="btn-auto-register" class="btn btn-primary" style="font-size: 1.1rem; padding: 1rem; margin-top: 0.5rem;">
+        🚀 進入密室挑戰
+      </button>
     </div>
 
-    <!-- 階段 2：闖關解謎卡 -->
+    <!-- 階段 2：闖關解謎卡（依分配路線分流） -->
     <div id="step-game" class="card" style="display: none;">
       
-      <!-- 頂部進度條 -->
+      <!-- 頂部進度條與地點提示 -->
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-        <span id="level-badge" class="badge-tag badge-warning" style="font-size: 0.9rem;">關卡 1 / 5</span>
-        <span id="level-location" style="font-size: 0.8rem; color: var(--secondary); font-weight: 700;">📍 地點：1 樓閱覽室</span>
+        <span id="level-badge" class="badge-tag badge-warning" style="font-size: 0.9rem;">第 1 / 5 關</span>
+        <span id="level-location" style="font-size: 0.85rem; color: var(--secondary); font-weight: 700;">📍 地點：載入中...</span>
       </div>
 
       <h2 id="level-title" style="font-size: 1.2rem; margin-bottom: 0.75rem; color: var(--text-light);">
-        關卡一：館舍尋蹤與守護法則
+        關卡載入中...
       </h2>
 
       <div id="level-hint-box" style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 10px; font-size: 0.9rem; color: #cbd5e1; margin-bottom: 1.25rem; border-left: 4px solid var(--primary);">
@@ -107,31 +104,17 @@
   <script>
     let currentTeamId = localStorage.getItem('ylhcvs_current_team_id') || null;
 
-    function initTeamSelect(state) {
-      const select = document.getElementById('select-team-id');
-      select.innerHTML = '';
-      Object.values(state.teams).forEach(team => {
-        const opt = document.createElement('option');
-        opt.value = team.id;
-        opt.textContent = `${team.name} ${team.members ? '(' + team.members + ')' : ''}`;
-        select.appendChild(opt);
-      });
-      if (currentTeamId) select.value = currentTeamId;
-    }
-
     function renderStudentUI(state) {
-      initTeamSelect(state);
-
       if (!currentTeamId || !state.teams[currentTeamId]) {
         document.getElementById('step-register').style.display = 'block';
         document.getElementById('step-game').style.display = 'none';
         document.getElementById('step-complete').style.display = 'none';
-        document.getElementById('team-header-info').textContent = "未登錄組別";
+        document.getElementById('team-header-info').textContent = "未登錄隊伍";
         return;
       }
 
       const team = state.teams[currentTeamId];
-      document.getElementById('team-header-info').textContent = `👥 ${team.name}`;
+      document.getElementById('team-header-info').textContent = `👥 【第 ${team.groupNum} 組】 ${team.name}`;
 
       if (team.completed) {
         document.getElementById('step-register').style.display = 'none';
@@ -151,42 +134,48 @@
         return;
       }
 
+      // 闖關解謎畫面
       document.getElementById('step-register').style.display = 'none';
       document.getElementById('step-game').style.display = 'block';
       document.getElementById('step-complete').style.display = 'none';
 
-      const level = team.currentLevel;
-      const levelData = GAME_LEVELS.find(l => l.level === level);
+      const qInfo = window.gameEngine.getCurrentQuestionForTeam(currentTeamId);
+      if (!qInfo) return;
 
-      document.getElementById('level-badge').textContent = `關卡 ${level} / 5`;
-      document.getElementById('level-location').textContent = `📍 ${levelData.location}`;
-      document.getElementById('level-title').textContent = levelData.title;
-      document.getElementById('level-hint-box').textContent = levelData.hint;
-      document.getElementById('level-question-lbl').textContent = levelData.question;
+      const qObj = qInfo.questionObj;
+
+      document.getElementById('level-badge').textContent = `第 ${qInfo.stepNumber} / ${qInfo.totalSteps} 關`;
+      document.getElementById('level-location').textContent = `📍 地點：${qObj.location}`;
+      document.getElementById('level-title').textContent = qObj.title;
+      document.getElementById('level-hint-box').textContent = qObj.hint;
+      document.getElementById('level-question-lbl').textContent = qObj.question;
       document.getElementById('input-answer').value = '';
       document.getElementById('error-msg').style.display = 'none';
     }
 
-    document.getElementById('btn-confirm-team').addEventListener('click', () => {
-      const teamId = document.getElementById('select-team-id').value;
+    // 自動報到並分配組別
+    document.getElementById('btn-auto-register').addEventListener('click', () => {
       const teamName = document.getElementById('input-team-name').value;
       const members = document.getElementById('input-members').value;
 
-      currentTeamId = teamId;
+      const newTeam = window.gameEngine.autoRegisterTeam(teamName, members);
+      currentTeamId = newTeam.id;
       localStorage.setItem('ylhcvs_current_team_id', currentTeamId);
-      window.gameEngine.registerTeam(teamId, teamName, members);
+      
+      alert(`🎉 報到成功！您被分配為【第 ${newTeam.groupNum} 組】\n系統已為您的團隊安排專屬路線，避免與其他隊伍擠在同一區域！`);
       renderStudentUI(window.gameEngine.state);
     });
 
+    // 提交密碼驗證
     document.getElementById('btn-submit-answer').addEventListener('click', () => {
       const inputVal = document.getElementById('input-answer').value;
       const team = window.gameEngine.state.teams[currentTeamId];
       if (!team) return;
 
-      const result = window.gameEngine.submitAnswer(currentTeamId, team.currentLevel, inputVal);
+      const result = window.gameEngine.submitAnswer(currentTeamId, inputVal);
       if (result.success) {
         if (result.isCompleted) {
-          confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+          confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
         }
         renderStudentUI(window.gameEngine.state);
       } else {
