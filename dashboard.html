@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🏆 員林家商圖書館密室逃脫 - 即時排行榜 (大螢幕端)</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Canvas Confetti 彩帶特效庫 -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- Firebase 跨裝置即時通訊庫 -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="firebase-config.js"></script>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="brand">
+      <span>🏫 國立員林家商圖書館</span>
+      <span style="opacity: 0.5;">|</span>
+      <span>密室逃脫《失落的智慧金鑰》大螢幕即時排行榜</span>
+    </div>
+    <div style="display: flex; gap: 1rem; align-items: center;">
+      <span id="game-status-badge" class="badge-tag badge-warning">尚未開始</span>
+      <div id="game-timer" style="font-size: 1.5rem; font-weight: 800; color: var(--gold); font-family: monospace;">00:00</div>
+    </div>
+  </nav>
+
+  <div class="dashboard-container">
+    <!-- 頂部數據統計條 -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="val" id="stat-total-teams">0</div>
+        <div class="lbl">參賽總組數</div>
+      </div>
+      <div class="stat-card">
+        <div class="val" id="stat-completed-teams" style="color: var(--success);">0</div>
+        <div class="lbl">已完賽組數</div>
+      </div>
+      <div class="stat-card">
+        <div class="val" id="stat-winning-quota" style="color: var(--gold);">3</div>
+        <div class="lbl">錄取獲勝名額</div>
+      </div>
+      <div class="stat-card">
+        <div class="val" id="stat-leader-level" style="color: var(--secondary);">第 1 關</div>
+        <div class="lbl">領先隊伍當前進度</div>
+      </div>
+    </div>
+
+    <!-- 即時排行榜表格 -->
+    <table class="leaderboard-table">
+      <thead>
+        <tr>
+          <th style="width: 80px;">名次</th>
+          <th style="width: 220px;">隊伍名稱 / 成員</th>
+          <th style="width: 140px;">當前進度</th>
+          <th>闖關進度條 ( 關卡 1 ～ 5 )</th>
+          <th style="width: 140px; text-align: right;">累積耗時</th>
+        </tr>
+      </thead>
+      <tbody id="leaderboard-body">
+        <!-- 即時動態渲染 -->
+      </tbody>
+    </table>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    let timerInterval = null;
+    let hasFiredConfetti = false;
+
+    function formatTime(ms) {
+      if (!ms || ms < 0) return "00:00";
+      const totalSec = Math.floor(ms / 1000);
+      const mins = Math.floor(totalSec / 60).toString().padStart(2, '0');
+      const secs = (totalSec % 60).toString().padStart(2, '0');
+      return `${mins}:${secs}`;
+    }
+
+    function renderDashboard(state) {
+      document.getElementById('stat-total-teams').textContent = Object.keys(state.teams).length;
+      document.getElementById('stat-winning-quota').textContent = `前 ${state.winningQuota} 名`;
+      
+      const badge = document.getElementById('game-status-badge');
+      if (state.status === 'playing') {
+        badge.className = 'badge-tag badge-success';
+        badge.textContent = '闖關進行中';
+      } else if (state.status === 'ended') {
+        badge.className = 'badge-tag badge-warning';
+        badge.textContent = '比賽已結束';
+      } else {
+        badge.className = 'badge-tag badge-warning';
+        badge.textContent = '等待教練/教師開始';
+      }
+
+      const sortedTeams = window.gameEngine.getSortedLeaderboard();
+      const completedCount = sortedTeams.filter(t => t.completed).length;
+      document.getElementById('stat-completed-teams').textContent = completedCount;
+
+      if (completedCount >= state.winningQuota && !hasFiredConfetti && state.status === 'playing') {
+        hasFiredConfetti = true;
+        confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+      }
+
+      if (sortedTeams.length > 0) {
+        const topTeam = sortedTeams[0];
+        document.getElementById('stat-leader-level').textContent = topTeam.completed ? "🎉 全卡通關" : `第 ${topTeam.currentLevel} 關`;
+      }
+
+      const tbody = document.getElementById('leaderboard-body');
+      tbody.innerHTML = '';
+
+      sortedTeams.forEach((team, index) => {
+        const rank = index + 1;
+        const isWinner = rank <= state.winningQuota && team.completed;
+        const tr = document.createElement('tr');
+        tr.className = `leaderboard-row ${isWinner ? 'row-winner' : ''}`;
+
+        let rankHtml = `<div class="rank-badge">${rank}</div>`;
+        if (rank === 1) rankHtml = `<div class="rank-badge rank-1">1</div>`;
+        else if (rank === 2) rankHtml = `<div class="rank-badge rank-2">2</div>`;
+        else if (rank === 3) rankHtml = `<div class="rank-badge rank-3">3</div>`;
+
+        let timeStr = "--:--";
+        if (team.startTime) {
+          const endTime = team.finishTime || Date.now();
+          timeStr = formatTime(endTime - team.startTime);
+        }
+
+        const progressPct = team.completed ? 100 : Math.min(100, Math.round(((team.currentLevel - 1) / 5) * 100));
+        
+        let statusTag = `<span style="color: var(--secondary); font-weight:700;">第 ${team.currentLevel} 關解謎中</span>`;
+        if (team.completed) {
+          statusTag = `<span style="color: var(--success); font-weight:800;">🏆 闖關成功 (${timeStr})</span>`;
+        }
+
+        tr.innerHTML = `
+          <td>${rankHtml}</td>
+          <td>
+            <div style="font-weight: 700; font-size: 1.1rem; color: #fff;">${team.name}</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">${team.members || '尚未輸入成員'}</div>
+          </td>
+          <td>${statusTag}</td>
+          <td>
+            <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted); margin-bottom:0.25rem;">
+              <span>已解開 ${team.completed ? 5 : team.currentLevel - 1} / 5 關</span>
+              <span>${progressPct}%</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" style="width: ${progressPct}%;"></div>
+            </div>
+          </td>
+          <td style="text-align: right; font-weight: 800; font-family: monospace; font-size: 1.1rem; color: var(--gold);">
+            ${timeStr}
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function startTimerLoop() {
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        const state = window.gameEngine.state;
+        if (state.status === 'playing' && state.startTime) {
+          document.getElementById('game-timer').textContent = formatTime(Date.now() - state.startTime);
+          renderDashboard(state);
+        }
+      }, 1000);
+    }
+
+    window.gameEngine.subscribe((state) => {
+      renderDashboard(state);
+    });
+
+    startTimerLoop();
+  </script>
+</body>
+</html>

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>⚙️ 員林家商圖書館密室逃脫 - 教師管理與 QR Code 設定頁</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- QRCode.js 免費線上庫 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- Firebase 跨裝置即時通訊庫 -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="firebase-config.js"></script>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="brand">
+      <span>⚙️ 教師管理後台</span>
+      <span style="opacity: 0.5;">|</span>
+      <span>員林家商圖書館密室逃脫控制中心</span>
+    </div>
+    <div>
+      <a href="dashboard.html" target="_blank" class="btn btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.875rem; text-decoration: none;">
+        📺 開啟大螢幕即時排行榜 ↗
+      </a>
+    </div>
+  </nav>
+
+  <div class="dashboard-container" style="max-width: 1000px;">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1rem;">
+      
+      <!-- 左側：遊戲參數設定 -->
+      <div class="card">
+        <h2 style="font-size: 1.25rem; margin-bottom: 1rem; color: var(--secondary);">🎮 1. 遊戲參數與規則設定</h2>
+        
+        <div style="margin-bottom: 1.25rem;">
+          <label style="font-weight: 600; font-size: 0.9rem; color: var(--text-muted);">🏆 錄取獲勝名額 (前 N 名)：</label>
+          <input type="number" id="input-quota" class="input-field" value="3" min="1" max="10">
+          <p style="font-size: 0.75rem; color: var(--text-muted);">最先完賽的前 N 名隊伍將自動觸發冠軍彩帶特效並獲得高亮。</p>
+        </div>
+
+        <div style="margin-bottom: 1.25rem;">
+          <label style="font-weight: 600; font-size: 0.9rem; color: var(--text-muted);">👥 預設組數 ( 10～20 組 )：</label>
+          <input type="number" id="input-total-teams" class="input-field" value="12" min="1" max="30">
+        </div>
+
+        <div style="display: flex; gap: 0.75rem;">
+          <button id="btn-save-setup" class="btn btn-primary">💾 初始化/儲存設定</button>
+          <button id="btn-start-game" class="btn btn-success">🚀 開始密室逃脫</button>
+          <button id="btn-reset-game" class="btn btn-danger">🔄 重置所有紀錄</button>
+        </div>
+      </div>
+
+      <!-- 右側：學生入場 QR Code 生成器 -->
+      <div class="card" style="text-align: center;">
+        <h2 style="font-size: 1.25rem; margin-bottom: 0.5rem; color: var(--gold);">📱 2. 學生入場 QR Code</h2>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">請投影此 QR Code 或印出給學生掃描進場：</p>
+        
+        <div id="qrcode-container" style="background: white; padding: 1rem; display: inline-block; border-radius: 12px; margin-bottom: 1rem;"></div>
+        
+        <div style="font-size: 0.8rem; color: var(--text-muted); word-break: break-all;">
+          學生連結網址：<br>
+          <a id="student-url-link" href="#" target="_blank" style="color: var(--secondary);">#</a>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 下方：實時監控與控制表格 -->
+    <div class="card" style="margin-top: 1.5rem;">
+      <h3 style="font-size: 1.1rem; margin-bottom: 1rem; color: var(--text-light);">📊 各組實時狀態與重置</h3>
+      <table class="leaderboard-table">
+        <thead>
+          <tr>
+            <th>組別 ID</th>
+            <th>組別名稱</th>
+            <th>成員名單</th>
+            <th>當前進度</th>
+            <th>完成狀態</th>
+          </tr>
+        </thead>
+        <tbody id="admin-table-body">
+          <!-- 動態載入 -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    let qrcodeObj = null;
+
+    function getStudentUrl() {
+      const currentUrl = window.location.href;
+      const baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/'));
+      return `${baseUrl}/student.html`;
+    }
+
+    function renderQrCode() {
+      const studentUrl = getStudentUrl();
+      document.getElementById('student-url-link').href = studentUrl;
+      document.getElementById('student-url-link').textContent = studentUrl;
+
+      const container = document.getElementById('qrcode-container');
+      container.innerHTML = '';
+      qrcodeObj = new QRCode(container, {
+        text: studentUrl,
+        width: 180,
+        height: 180,
+        colorDark : "#000000",
+        colorLight : "#ffffff",
+        correctLevel : QRCode.CorrectLevel.H
+      });
+    }
+
+    function renderAdminTable(state) {
+      document.getElementById('input-quota').value = state.winningQuota;
+      document.getElementById('input-total-teams').value = state.totalTeams;
+
+      const tbody = document.getElementById('admin-table-body');
+      tbody.innerHTML = '';
+
+      Object.values(state.teams).forEach(team => {
+        const tr = document.createElement('tr');
+        tr.className = 'leaderboard-row';
+        tr.innerHTML = `
+          <td style="font-weight:700;">${team.id}</td>
+          <td>${team.name}</td>
+          <td>${team.members || '<span style="color:var(--text-muted);">尚未登錄</span>'}</td>
+          <td>第 ${team.currentLevel} 關</td>
+          <td>${team.completed ? '✅ 已通關' : '⏳ 解謎中'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    document.getElementById('btn-save-setup').addEventListener('click', () => {
+      const quota = document.getElementById('input-quota').value;
+      const total = document.getElementById('input-total-teams').value;
+      window.gameEngine.setupGame(quota, total);
+      alert('✅ 遊戲參數設定成功！已初始化各組別狀態。');
+    });
+
+    document.getElementById('btn-start-game').addEventListener('click', () => {
+      window.gameEngine.startGame();
+      alert('🚀 密室逃脫比賽已正式開始！計時中……');
+    });
+
+    document.getElementById('btn-reset-game').addEventListener('click', () => {
+      if (confirm('⚠️ 確定要重置所有比賽紀錄嗎？這將清除目前的排行榜狀態。')) {
+        window.gameEngine.resetGame();
+        alert('🔄 已重置所有比賽數據！');
+      }
+    });
+
+    window.gameEngine.subscribe((state) => {
+      renderAdminTable(state);
+    });
+
+    renderQrCode();
+  </script>
+</body>
+</html>

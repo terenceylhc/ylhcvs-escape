@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.5, maximum-scale=1.0, user-scalable=no">
+  <title>🔐 員家圖書館密室逃脫 - 學生闖關端</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Canvas Confetti 彩帶特效庫 -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- Firebase 跨裝置即時通訊庫 -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="firebase-config.js"></script>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="brand">
+      <span>🏫 員家圖書館密室逃脫</span>
+    </div>
+    <div id="team-header-info" style="font-size: 0.85rem; font-weight: 700; color: var(--gold);">
+      未登錄組別
+    </div>
+  </nav>
+
+  <div class="student-container">
+    
+    <!-- 階段 1：組別登錄卡 -->
+    <div id="step-register" class="card">
+      <h2 style="font-size: 1.3rem; margin-bottom: 0.5rem; color: var(--secondary); text-align: center;">
+        👥 1. 選擇/輸入組別
+      </h2>
+      <p style="font-size: 0.85rem; color: var(--text-muted); text-align: center; margin-bottom: 1.25rem;">
+        請每組（2～4 人）由一名代表輸入組別與成員姓名：
+      </p>
+
+      <label style="font-size: 0.9rem; font-weight: 600;">選擇您的組別：</label>
+      <select id="select-team-id" class="input-field">
+        <!-- 動態載入組別 1~12 -->
+      </select>
+
+      <label style="font-size: 0.9rem; font-weight: 600;">組別名稱 (可自訂)：</label>
+      <input type="text" id="input-team-name" class="input-field" placeholder="例如：員家第 3 組 / 閱讀學霸隊">
+
+      <label style="font-size: 0.9rem; font-weight: 600;">組員姓名 (以逗號分隔)：</label>
+      <input type="text" id="input-members" class="input-field" placeholder="例如：王小明, 張小華, 李小英">
+
+      <button id="btn-confirm-team" class="btn btn-primary">進入密室挑戰 🚀</button>
+    </div>
+
+    <!-- 階段 2：闖關解謎卡 -->
+    <div id="step-game" class="card" style="display: none;">
+      
+      <!-- 頂部進度條 -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <span id="level-badge" class="badge-tag badge-warning" style="font-size: 0.9rem;">關卡 1 / 5</span>
+        <span id="level-location" style="font-size: 0.8rem; color: var(--secondary); font-weight: 700;">📍 地點：1 樓閱覽室</span>
+      </div>
+
+      <h2 id="level-title" style="font-size: 1.2rem; margin-bottom: 0.75rem; color: var(--text-light);">
+        關卡一：館舍尋蹤與守護法則
+      </h2>
+
+      <div id="level-hint-box" style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 10px; font-size: 0.9rem; color: #cbd5e1; margin-bottom: 1.25rem; border-left: 4px solid var(--primary);">
+        提示訊息加載中……
+      </div>
+
+      <div style="margin-bottom: 1rem;">
+        <label id="level-question-lbl" style="font-size: 0.9rem; font-weight: 600; color: var(--gold);">
+          請輸入解密密碼：
+        </label>
+        <input type="text" id="input-answer" class="input-field" placeholder="請輸入密碼數字" style="font-size: 1.25rem; letter-spacing: 2px; text-align: center;">
+      </div>
+
+      <div id="error-msg" style="color: var(--danger); font-size: 0.85rem; text-align: center; margin-bottom: 0.75rem; display: none;"></div>
+
+      <button id="btn-submit-answer" class="btn btn-success" style="font-size: 1.1rem; padding: 1rem;">
+        🔓 解鎖密碼
+      </button>
+    </div>
+
+    <!-- 階段 3：終極通關卡 -->
+    <div id="step-complete" class="card" style="display: none; text-align: center; padding: 2rem 1rem;">
+      <div style="font-size: 4rem; margin-bottom: 0.5rem;">🎉</div>
+      <h2 style="font-size: 1.6rem; color: var(--gold); margin-bottom: 0.5rem;">恭喜全卡通關！</h2>
+      <p style="font-size: 1rem; color: var(--text-muted); margin-bottom: 1.5rem;">
+        你們成功順利解答員林家商圖書館 5 大關卡！
+      </p>
+
+      <div style="background: rgba(255,255,255,0.05); padding: 1.25rem; border-radius: 12px; margin-bottom: 1.5rem;">
+        <div style="font-size: 0.9rem; color: var(--text-muted);">完成名次 / 總耗時</div>
+        <div id="final-rank-display" style="font-size: 2.2rem; font-weight: 800; color: var(--success); margin: 0.25rem 0;">
+          第 1 名
+        </div>
+        <div id="final-time-display" style="font-size: 1.1rem; color: var(--gold); font-family: monospace;">
+          耗時：12 分 34 秒
+        </div>
+      </div>
+
+      <p style="font-size: 0.85rem; color: var(--secondary);">
+        請向圖書館館員展示此畫面核發「利用教育認證章與獎品」！
+      </p>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    let currentTeamId = localStorage.getItem('ylhcvs_current_team_id') || null;
+
+    function initTeamSelect(state) {
+      const select = document.getElementById('select-team-id');
+      select.innerHTML = '';
+      Object.values(state.teams).forEach(team => {
+        const opt = document.createElement('option');
+        opt.value = team.id;
+        opt.textContent = `${team.name} ${team.members ? '(' + team.members + ')' : ''}`;
+        select.appendChild(opt);
+      });
+      if (currentTeamId) select.value = currentTeamId;
+    }
+
+    function renderStudentUI(state) {
+      initTeamSelect(state);
+
+      if (!currentTeamId || !state.teams[currentTeamId]) {
+        document.getElementById('step-register').style.display = 'block';
+        document.getElementById('step-game').style.display = 'none';
+        document.getElementById('step-complete').style.display = 'none';
+        document.getElementById('team-header-info').textContent = "未登錄組別";
+        return;
+      }
+
+      const team = state.teams[currentTeamId];
+      document.getElementById('team-header-info').textContent = `👥 ${team.name}`;
+
+      if (team.completed) {
+        document.getElementById('step-register').style.display = 'none';
+        document.getElementById('step-game').style.display = 'none';
+        document.getElementById('step-complete').style.display = 'block';
+
+        const sorted = window.gameEngine.getSortedLeaderboard();
+        const rankIndex = sorted.findIndex(t => t.id === team.id) + 1;
+        document.getElementById('final-rank-display').textContent = `第 ${rankIndex} 名`;
+
+        if (team.finishTime && team.startTime) {
+          const sec = Math.floor((team.finishTime - team.startTime) / 1000);
+          const mins = Math.floor(sec / 60);
+          const secs = sec % 60;
+          document.getElementById('final-time-display').textContent = `總耗時：${mins} 分 ${secs} 秒`;
+        }
+        return;
+      }
+
+      document.getElementById('step-register').style.display = 'none';
+      document.getElementById('step-game').style.display = 'block';
+      document.getElementById('step-complete').style.display = 'none';
+
+      const level = team.currentLevel;
+      const levelData = GAME_LEVELS.find(l => l.level === level);
+
+      document.getElementById('level-badge').textContent = `關卡 ${level} / 5`;
+      document.getElementById('level-location').textContent = `📍 ${levelData.location}`;
+      document.getElementById('level-title').textContent = levelData.title;
+      document.getElementById('level-hint-box').textContent = levelData.hint;
+      document.getElementById('level-question-lbl').textContent = levelData.question;
+      document.getElementById('input-answer').value = '';
+      document.getElementById('error-msg').style.display = 'none';
+    }
+
+    document.getElementById('btn-confirm-team').addEventListener('click', () => {
+      const teamId = document.getElementById('select-team-id').value;
+      const teamName = document.getElementById('input-team-name').value;
+      const members = document.getElementById('input-members').value;
+
+      currentTeamId = teamId;
+      localStorage.setItem('ylhcvs_current_team_id', currentTeamId);
+      window.gameEngine.registerTeam(teamId, teamName, members);
+      renderStudentUI(window.gameEngine.state);
+    });
+
+    document.getElementById('btn-submit-answer').addEventListener('click', () => {
+      const inputVal = document.getElementById('input-answer').value;
+      const team = window.gameEngine.state.teams[currentTeamId];
+      if (!team) return;
+
+      const result = window.gameEngine.submitAnswer(currentTeamId, team.currentLevel, inputVal);
+      if (result.success) {
+        if (result.isCompleted) {
+          confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+        }
+        renderStudentUI(window.gameEngine.state);
+      } else {
+        const err = document.getElementById('error-msg');
+        err.textContent = result.message;
+        err.style.display = 'block';
+      }
+    });
+
+    window.gameEngine.subscribe((state) => {
+      renderStudentUI(state);
+    });
+  </script>
+</body>
+</html>
