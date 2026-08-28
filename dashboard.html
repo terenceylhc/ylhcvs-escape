@@ -28,7 +28,7 @@
     .modal-overlay.active { opacity: 1; pointer-events: auto; }
     .modal-content {
       background: var(--card-dark); border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 16px; width: 90%; max-width: 900px; max-height: 85vh;
+      border-radius: 16px; width: 95%; max-width: 1050px; max-height: 85vh;
       padding: 1.5rem; overflow-y: auto; box-shadow: 0 20px 40px rgba(0,0,0,0.6);
     }
   </style>
@@ -122,7 +122,7 @@
             <th style="width: 70px;">名次</th>
             <th style="width: 220px;">組別 / 隊伍名稱</th>
             <th style="width: 200px;">當前關卡與地點</th>
-            <th>闖關進度 ( 隨機亂序路線 1 ~ 5 關 )</th>
+            <th>闖關進度 ( 循環移位路線 1 ~ 5 關 )</th>
             <th style="width: 120px; text-align: right;">累積耗時</th>
           </tr>
         </thead>
@@ -138,16 +138,16 @@
   <div id="qbank-modal" class="modal-overlay">
     <div class="modal-content">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-        <h2 style="color: var(--gold); font-size: 1.3rem;">⚙️ 後台題庫管理與 Excel 匯入/匯出</h2>
+        <h2 style="color: var(--gold); font-size: 1.3rem;">⚙️ 後台多題目題庫管理 (含 Excel 匯入/匯出)</h2>
         <button id="btn-close-qbank" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">✕</button>
       </div>
 
       <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
-        管理員權限驗證通過。您可以在此下載 Excel 檔案編輯，或在下方直接修訂關卡內容：
+        管理員權限驗證通過。每道關卡類別 (1~5 關) 中可包含多道題目，每組報到時會隨機抽取 1 題：
       </p>
 
       <div style="display: flex; gap: 1rem; margin-bottom: 1.25rem;">
-        <button id="btn-export-excel" class="btn btn-primary" style="width: auto;">📥 匯出 Excel 題庫 (.xlsx)</button>
+        <button id="btn-export-excel" class="btn btn-primary" style="width: auto;">📥 匯出完整 Excel 題庫 (.xlsx)</button>
         <label class="btn btn-success" style="width: auto; cursor: pointer;">
           📤 匯入 Excel 題庫 (.xlsx / .csv)
           <input type="file" id="input-excel-file" accept=".xlsx, .xls, .csv" style="display: none;">
@@ -271,8 +271,14 @@
         let locationText = "⏳ 等待開賽";
         if (state.status === 'playing') {
           if (!team.completed && stepIdx < seq.length) {
-            const qId = seq[stepIdx];
-            const qObj = (state.questions || DEFAULT_GAME_LEVELS).find(q => q.id === qId);
+            const currentCat = seq[stepIdx];
+            let qObj = null;
+            if (team.assignedQuestions && team.assignedQuestions[currentCat]) {
+              qObj = team.assignedQuestions[currentCat];
+            } else {
+              const pool = state.questions || [];
+              qObj = pool.find(q => (q.categoryLevel || q.id) == currentCat);
+            }
             const locName = qObj ? (qObj.location ? qObj.location.split(' ')[0] : '圖書館') : '圖書館';
             locationText = `📍 ${locName} (第${stepIdx + 1}關)`;
           } else if (team.completed) {
@@ -291,7 +297,7 @@
           <td style="font-size: 0.85rem; font-weight: 600; color: var(--secondary);">${locationText}</td>
           <td>
             <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted); margin-bottom:0.25rem;">
-              <span>已解開 ${team.completed ? 5 : stepIdx} / 5 關</span>
+              <span>已解開 ${team.completed ? 5 : stepIdx} / 5 关</span>
               <span>${progressPct}%</span>
             </div>
             <div class="progress-bar-bg">
@@ -327,7 +333,7 @@
     document.getElementById('btn-open-qbank').addEventListener('click', () => {
       const inputPwd = prompt("🔑 請輸入後台管理密碼：");
       if (window.gameEngine.verifyAdminPassword(inputPwd)) {
-        renderQBankEditor(window.gameEngine.state.questions || DEFAULT_GAME_LEVELS);
+        renderQBankEditor(window.gameEngine.state.questions || []);
         modal.classList.add('active');
       } else {
         alert("❌ 密碼錯誤，無法開啟後台題庫管理！");
@@ -341,20 +347,20 @@
     function renderQBankEditor(questions) {
       const container = document.getElementById('qbank-editor-container');
       container.innerHTML = `
-        <table class="leaderboard-table" style="font-size: 0.85rem;">
+        <table class="leaderboard-table" style="font-size: 0.82rem;">
           <thead>
             <tr>
-              <th style="width:50px;">編號</th>
-              <th style="width:140px;">關卡名稱</th>
-              <th style="width:140px;">館舍地點</th>
-              <th style="width:80px;">答案密碼</th>
-              <th>提示訊息</th>
+              <th style="width:70px;">題庫類別</th>
+              <th style="width:130px;">關卡標題</th>
+              <th style="width:130px;">館舍地點</th>
+              <th style="width:70px;">答案密碼</th>
+              <th>學生端提示訊息 (不含密碼)</th>
             </tr>
           </thead>
           <tbody>
             ${questions.map((q, idx) => `
               <tr class="leaderboard-row">
-                <td style="font-weight:700;">關卡 ${q.id}</td>
+                <td style="font-weight:700; color:var(--gold);">第 ${q.categoryLevel || q.id} 關類別</td>
                 <td><input type="text" class="input-field q-title" data-idx="${idx}" value="${q.title || ''}" style="margin:0; padding:0.4rem;"></td>
                 <td><input type="text" class="input-field q-location" data-idx="${idx}" value="${q.location || ''}" style="margin:0; padding:0.4rem;"></td>
                 <td><input type="text" class="input-field q-answer" data-idx="${idx}" value="${q.answer || ''}" style="margin:0; padding:0.4rem; text-align:center;"></td>
@@ -372,15 +378,19 @@
       const answers = document.querySelectorAll('.q-answer');
       const hints = document.querySelectorAll('.q-hint');
 
+      const currentPool = window.gameEngine.state.questions || [];
       const updated = [];
+
       titles.forEach((el, idx) => {
+        const orig = currentPool[idx] || {};
         updated.push({
-          id: idx + 1,
+          id: orig.id || `q_${orig.categoryLevel || 1}_${idx+1}`,
+          categoryLevel: orig.categoryLevel || (idx % 5) + 1,
           title: el.value,
           location: locations[idx].value,
           answer: answers[idx].value,
           hint: hints[idx].value,
-          question: `請輸入${locations[idx].value}算出的解密密碼：`
+          question: orig.question || `請輸入${locations[idx].value}算出的解密密碼：`
         });
       });
 
@@ -390,19 +400,21 @@
     });
 
     document.getElementById('btn-export-excel').addEventListener('click', () => {
-      const questions = window.gameEngine.state.questions || DEFAULT_GAME_LEVELS;
+      const questions = window.gameEngine.state.questions || [];
       const exportData = questions.map(q => ({
-        "關卡編號": q.id,
+        "題目ID": q.id,
+        "關卡類別(1-5)": q.categoryLevel,
         "關卡名稱": q.title,
         "館舍地點": q.location,
         "答案密碼": q.answer,
-        "提示訊息": q.hint
+        "提示訊息(不含解答)": q.hint,
+        "題目題目描述": q.question
       }));
 
       const worksheet = XLSX.utils.json_to_sheet(exportData);
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "題庫列表");
-      XLSX.writeFile(workbook, "員林家商圖書館密室逃脫題庫.xlsx");
+      XLSX.utils.book_append_sheet(workbook, worksheet, "密室逃脫題庫池");
+      XLSX.writeFile(workbook, "員林家商圖書館密室逃脫多題目題庫.xlsx");
     });
 
     document.getElementById('input-excel-file').addEventListener('change', (e) => {
@@ -418,17 +430,18 @@
 
         if (json.length > 0) {
           const importedQuestions = json.map((row, idx) => ({
-            id: row["關卡編號"] || (idx + 1),
+            id: row["題目ID"] || `imported_${idx+1}`,
+            categoryLevel: parseInt(row["關卡類別(1-5)"]) || ((idx % 5) + 1),
             title: row["關卡名稱"] || `關卡 ${idx + 1}`,
             location: row["館舍地點"] || "圖書館",
             answer: String(row["答案密碼"] || "0000"),
-            hint: row["提示訊息"] || "",
-            question: `請輸入${row["館舍地點"] || "圖書館"}算出的解密密碼：`
+            hint: row["提示訊息(不含解答)"] || "",
+            question: row["題目題目描述"] || `請輸入${row["館舍地點"] || "圖書館"}算出的解密密碼：`
           }));
 
           window.gameEngine.updateQuestions(importedQuestions);
           renderQBankEditor(importedQuestions);
-          alert(`✅ 成功匯入 ${importedQuestions.length} 道題目！`);
+          alert(`✅ 成功匯入 ${importedQuestions.length} 道多題目題庫！`);
         }
       };
       reader.readAsArrayBuffer(file);

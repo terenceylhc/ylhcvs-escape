@@ -30,7 +30,7 @@
         👥 輸入隊名開始挑戰
       </h2>
       <p style="font-size: 0.85rem; color: var(--text-muted); text-align: center; margin-bottom: 1.25rem;">
-        請每組（2～4 人）由一名代表輸入隊名，系統將自動分配組別：
+        請每組（2～4 人）由一名代表輸入隊名，系統將自動分配組別與闖關路線：
       </p>
 
       <label style="font-size: 0.9rem; font-weight: 600;">隊伍名稱 (隊名)：</label>
@@ -56,7 +56,7 @@
       </p>
 
       <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 10px; font-size: 0.85rem; color: var(--text-muted);">
-        💡 提示：開始遊戲後，畫面將自動跳轉至您的第一個密室關卡，祝您奪得第一名！
+        💡 提示：開始遊戲後，系統已為您的團隊安排專屬路線（第 1 組 1➔2➔3➔4➔5，第 2 組 2➔3➔4➔5➔1...），祝您奪得第一名！
       </div>
     </div>
 
@@ -133,7 +133,6 @@
       const team = state.teams[currentTeamId];
       document.getElementById('team-header-info').textContent = `👥 【第 ${team.groupNum} 組】 ${team.name}`;
 
-      // 如果全卡通關
       if (team.completed) {
         document.getElementById('step-register').style.display = 'none';
         document.getElementById('step-waiting').style.display = 'none';
@@ -153,7 +152,7 @@
         return;
       }
 
-      // 如果老師尚未按下「開始遊戲」 ➔ 進入【等待區】
+      // 老師未按開賽 ➔ 等待區
       if (state.status !== 'playing') {
         document.getElementById('step-register').style.display = 'none';
         document.getElementById('step-waiting').style.display = 'block';
@@ -163,27 +162,26 @@
         return;
       }
 
-      // 比賽正式開始 ➔ 開放解謎畫面
+      // 開賽 ➔ 題目頁
       document.getElementById('step-register').style.display = 'none';
       document.getElementById('step-waiting').style.display = 'none';
       document.getElementById('step-game').style.display = 'block';
       document.getElementById('step-complete').style.display = 'none';
 
       const qInfo = window.gameEngine.getCurrentQuestionForTeam(currentTeamId);
-      if (!qInfo) return;
+      if (!qInfo || !qInfo.questionObj) return;
 
       const qObj = qInfo.questionObj;
 
       document.getElementById('level-badge').textContent = `第 ${qInfo.stepNumber} / ${qInfo.totalSteps} 關`;
-      document.getElementById('level-location').textContent = `📍 地點：${qObj.location}`;
-      document.getElementById('level-title').textContent = qObj.title;
-      document.getElementById('level-hint-box').textContent = qObj.hint;
-      document.getElementById('level-question-lbl').textContent = qObj.question;
+      document.getElementById('level-location').textContent = `📍 ${qObj.location || '圖書館'}`;
+      document.getElementById('level-title').textContent = qObj.title || '圖書館挑戰關卡';
+      document.getElementById('level-hint-box').textContent = qObj.hint || '請細心觀察現場環境標示以算出解答！';
+      document.getElementById('level-question-lbl').textContent = qObj.question || '請輸入解密密碼：';
       document.getElementById('input-answer').value = '';
       document.getElementById('error-msg').style.display = 'none';
     }
 
-    // 自動報到並分配組別
     document.getElementById('btn-auto-register').addEventListener('click', () => {
       const teamName = document.getElementById('input-team-name').value;
       const members = document.getElementById('input-members').value;
@@ -195,7 +193,6 @@
       renderStudentUI(window.gameEngine.state);
     });
 
-    // 提交密碼驗證
     document.getElementById('btn-submit-answer').addEventListener('click', () => {
       const inputVal = document.getElementById('input-answer').value;
       const team = window.gameEngine.state.teams[currentTeamId];
