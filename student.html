@@ -56,7 +56,7 @@
       </p>
 
       <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 10px; font-size: 0.85rem; color: var(--text-muted);">
-        💡 提示：開始遊戲後，系統已為您的團隊安排專屬路線（第 1 組 1➔2➔3➔4➔5，第 2 組 2➔3➔4➔5➔1...），祝您奪得第一名！
+        💡 提示：開始遊戲後，系統已為您的團隊安排專屬路線，祝您奪得第一名！
       </div>
     </div>
 
@@ -73,7 +73,8 @@
         關卡載入中...
       </h2>
 
-      <div id="level-hint-box" style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 10px; font-size: 0.9rem; color: #cbd5e1; margin-bottom: 1.25rem; border-left: 4px solid var(--primary);">
+      <!-- 提示訊息區（答錯 2 次自動解鎖） -->
+      <div id="level-hint-box" style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 10px; font-size: 0.88rem; color: #cbd5e1; margin-bottom: 1.25rem; border-left: 4px solid var(--primary); transition: all 0.3s ease;">
         提示訊息加載中……
       </div>
 
@@ -81,7 +82,7 @@
         <label id="level-question-lbl" style="font-size: 0.9rem; font-weight: 600; color: var(--gold);">
           請輸入解密密碼：
         </label>
-        <input type="text" id="input-answer" class="input-field" placeholder="請輸入密碼數字" style="font-size: 1.25rem; letter-spacing: 2px; text-align: center;">
+        <input type="text" id="input-answer" class="input-field" placeholder="請輸入密碼數字或解答" style="font-size: 1.25rem; letter-spacing: 2px; text-align: center;">
       </div>
 
       <div id="error-msg" style="color: var(--danger); font-size: 0.85rem; text-align: center; margin-bottom: 0.75rem; display: none;"></div>
@@ -152,7 +153,7 @@
         return;
       }
 
-      // 老師未按開賽 ➔ 等待區
+      // 未開賽 ➔ 等待區
       if (state.status !== 'playing') {
         document.getElementById('step-register').style.display = 'none';
         document.getElementById('step-waiting').style.display = 'block';
@@ -162,7 +163,7 @@
         return;
       }
 
-      // 開賽 ➔ 題目頁
+      // 比賽中 ➔ 顯示題目頁
       document.getElementById('step-register').style.display = 'none';
       document.getElementById('step-waiting').style.display = 'none';
       document.getElementById('step-game').style.display = 'block';
@@ -176,8 +177,21 @@
       document.getElementById('level-badge').textContent = `第 ${qInfo.stepNumber} / ${qInfo.totalSteps} 關`;
       document.getElementById('level-location').textContent = `📍 ${qObj.location || '圖書館'}`;
       document.getElementById('level-title').textContent = qObj.title || '圖書館挑戰關卡';
-      document.getElementById('level-hint-box').textContent = qObj.hint || '請細心觀察現場環境標示以算出解答！';
       document.getElementById('level-question-lbl').textContent = qObj.question || '請輸入解密密碼：';
+
+      // 判斷答錯次數是否 >= 2：解鎖求救提示
+      const hintBox = document.getElementById('level-hint-box');
+      if (qInfo.failedAttempts >= 2) {
+        hintBox.style.borderLeft = '4px solid var(--success)';
+        hintBox.style.background = 'rgba(16, 185, 129, 0.1)';
+        hintBox.innerHTML = `<span style="color:var(--success); font-weight:700;">💡 求救提示已解鎖：</span><br>${qObj.hint || '請仔細檢索並對照欄位算式！'}`;
+      } else {
+        const remaining = 2 - qInfo.failedAttempts;
+        hintBox.style.borderLeft = '4px solid var(--primary)';
+        hintBox.style.background = 'rgba(255, 255, 255, 0.05)';
+        hintBox.innerHTML = `<span style="color:var(--gold); font-weight:700;">🔒 求救提示已鎖定：</span><br>需連續答錯 2 次後自動解鎖提示（目前已答錯 ${qInfo.failedAttempts} 次，再錯 ${remaining} 次開啟提示）。`;
+      }
+
       document.getElementById('input-answer').value = '';
       document.getElementById('error-msg').style.display = 'none';
     }
@@ -208,6 +222,7 @@
         const err = document.getElementById('error-msg');
         err.textContent = result.message;
         err.style.display = 'block';
+        renderStudentUI(window.gameEngine.state);
       }
     });
 

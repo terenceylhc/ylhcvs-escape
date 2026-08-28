@@ -1,12 +1,10 @@
 /**
- * 員林家商圖書館密室逃脫 - 全域通訊與狀態控制核心 (App Core v3.0)
+ * 員林家商圖書館密室逃脫 - 全域通訊與狀態控制核心 (App Core v3.3 - 答錯 2 次解鎖提示版)
  * 升級亮點：
- * 1. 隱藏密碼提示：學生端提示訊息嚴格去除了密碼數字洩漏。
- * 2. 循環關卡順序：第1組 [1,2,3,4,5]、第2組 [2,3,4,5,1]、第3組 [3,4,5,1,2]、第4組 [4,5,1,2,3]、第5組 [5,1,2,3,4]...
- * 3. 題庫池與隨機抽題：每關卡預載多道題目，每組報到時從各關題庫池中隨機抽取 1 題。
+ * 1. 錯誤計數機制：學生預設不顯示提示，需答錯 2 次（含）以上才自動解鎖顯示求救提示！
+ * 2. 完整題庫、解答與提示比對 logic。
  */
 
-// 預設豐富題庫池 (五大關卡，每關多道題目)
 const DEFAULT_QUESTIONS_POOL = [
   // ─── 關卡 1：館舍尋蹤與守護法則 (1 樓) ───
   {
@@ -27,121 +25,103 @@ const DEFAULT_QUESTIONS_POOL = [
     hint: "提示：請確認 TEAL 教室樓層、學生證書籍上限冊數、可續借次數與漫畫外借冊數規定。",
     question: "【題目 1-2】請參閱 1 樓導覽圖與借閱規定，回答下列問題並算出 4 位數密碼 (數字A:TEAL教室樓層 / 數字B:書籍上限 / 數字C:可續借次數 / 數字D:漫畫可借冊數)："
   },
-  {
-    id: "q_1_3",
-    categoryLevel: 1,
-    title: "關卡一：館舍尋蹤與守護法則",
-    location: "1 樓 員家藝廊",
-    answer: "1820",
-    hint: "提示：請確認員家藝廊樓層、書籍冊數上限、影音冊數上限與當期雜誌外借規定。",
-    question: "【題目 1-3】請參閱 1 樓藝廊告示與借閱規定，回答下列問題並算出 4 位數密碼 (數字A:員家藝廊樓層 / 數字B:書籍上限 / 數字C:影音上限 / 數字D:當期雜誌外借冊數)："
-  },
-  {
-    id: "q_1_4",
-    categoryLevel: 1,
-    title: "關卡一：館舍尋蹤與守護法則",
-    location: "1 樓 閱覽室",
-    answer: "1520",
-    hint: "提示：請確認閱覽室樓層、期刊冊數上限、借期週數與漫畫外借規定。",
-    question: "【題目 1-4】請參閱 1 樓閱覽室與借閱規定，回答下列問題並算出 4 位數密碼 (數字A:閱覽室樓層 / 數字B:期刊上限 / 數字C:借期週數 / 數字D:漫畫可借冊數)："
-  },
 
-  // ─── 關卡 2：2 樓書庫索書號尋寶 (2 樓) ───
+  // ─── 關卡 2：OPAC 跨欄位進階運算 Ⅰ ───
   {
     id: "q_2_1",
     categoryLevel: 2,
-    title: "關卡二：2 樓書庫索書號尋寶",
-    location: "2 樓 書庫區 (文學類書架)",
-    answer: "122",
-    hint: "提示：請至 2 樓書庫找到索書號 857.7 的指定小說，翻開書頁回答：員家藝廊樓層、流通櫃檯樓層與影音上限部數。",
-    question: "【題目 2-1】請前往 2 樓書庫找出索書號『857.7 4422』書籍，輸入書中卡片算出的 3 位數密碼："
+    title: "關卡二：【跨欄位數學算式：《解憂雜貨店》】",
+    location: "電腦查詢區 / 學生手機 (WebOPAC 檢索)",
+    answer: ["652"],
+    hint: "提示：請在 WebOPAC 搜尋《解憂雜貨店》，計算出版年末兩碼相加、索書號點號前三位數字和的個位數，以及館藏總冊數。",
+    question: "🧮 請在 WebOPAC 搜尋《解憂雜貨店》（皇冠出版），回答 3 位數密碼 (數字A: 出版年2015末兩碼相加 / 數字B: 索書號861.57點號前861三數字和的個位數 / 數字C: 館藏總冊數)："
   },
   {
     id: "q_2_2",
     categoryLevel: 2,
-    title: "關卡二：2 樓書庫索書號尋寶",
-    location: "2 樓 書庫區 (自然科學類書架)",
-    answer: "281",
-    hint: "提示：請至 2 樓書庫 300 類書架尋找科普書籍，回答：休閒閱讀區樓層、書籍冊數上限與可續借次數。",
-    question: "【題目 2-2】請前往 2 樓書庫找出索书號『308 1245』書籍，輸入書中卡片算出的 3 位數密碼："
+    title: "關卡二：【筆畫與年份排列：《解憂雜貨店》】",
+    location: "電腦查詢區 / 學生手機 (WebOPAC 檢索)",
+    answer: ["895"],
+    hint: "提示：請在 WebOPAC 搜尋《解憂雜貨店》，查出作者第一個字筆畫數、出版社第一個字筆畫數與出版年個位數。",
+    question: "✍️ 請在 WebOPAC 搜尋《解憂雜貨店》，回答 3 位數密碼 (數字A: 作者『東野圭吾』首字『東』筆畫數 / 數字B: 出版社『皇冠』首字『皇』筆畫數 / 數字C: 出版年2015個位數)："
   },
   {
     id: "q_2_3",
     categoryLevel: 2,
-    title: "關卡二：2 樓書庫索書號尋寶",
-    location: "2 樓 書庫區 (商管類書架)",
-    answer: "340",
-    hint: "提示：請至 2 樓書庫 500 類商管書架尋找指定書籍，對照：國貿科樓層、商經科樓層與當期雜誌外借冊數。",
-    question: "【題目 2-3】請前往 2 樓書庫找出索書號『525.7 8844』書籍，輸入書中卡片算出的 3 位數密碼："
+    title: "關卡二：【索書號與年份疊加算式：《原子習慣》】",
+    location: "電腦查詢區 / 學生手機 (WebOPAC 檢索)",
+    answer: ["266"],
+    hint: "提示：請在 WebOPAC 搜尋《原子習慣》，算出出版年四位數字和的個位數、索書號小數點後與作者號數字合，以及出版社筆畫個位數。",
+    question: "🔢 請在 WebOPAC 搜尋《原子習慣》（方智出版），回答 3 位數密碼 (數字A: 出版年2019四數字和個位 / 數字B: 索書號小數點後2與作者號4422首位4相加 / 數字C: 出版社『方智』總筆畫個位)："
   },
 
-  // ─── 關卡 3：員家科系與專業教室大考驗 (3 樓與 4 樓) ───
+  // ─── 關卡 3：OPAC 跨欄位進階運算 Ⅱ ───
   {
     id: "q_3_1",
     categoryLevel: 3,
-    title: "關卡三：員家科系與專業教室大考驗",
-    location: "3 樓與 4 樓 專業教室區",
-    answer: "347",
-    hint: "提示：請查閱樓層導覽圖，確認『國貿科專業教室樓層』與『商經科專業教室樓層』，帶入提示卡算式。",
-    question: "【題目 3-1】已知算式 (商經科樓層 × 國貿科樓層) - 教師研究室樓層(5樓)，請輸入組合出的 3 位數密碼 (國貿科樓層 / 商經科樓層 / 算式結果)："
+    title: "關卡三：【文字與數字混合暗號：《被討厭的勇氣》】",
+    location: "電腦查詢區 / 學生手機 (WebOPAC 檢索)",
+    answer: ["究竟見4", "7774"],
+    hint: "提示：請在 WebOPAC 搜尋《被討厭的勇氣》，組合出版社名稱、作者第二個字與出版年末碼。",
+    question: "🔀 請在 WebOPAC 搜尋《被討厭的勇氣》，輸入暗號密碼 (出版社全名 + 作者『岸見一郎』第二個字 + 出版年2014末碼數字)："
   },
   {
     id: "q_3_2",
     categoryLevel: 3,
-    title: "關卡三：員家科系與專業教室大考驗",
-    location: "3 樓美術教室與 4 樓電腦教室",
-    answer: "345",
-    hint: "提示：請查閱圖書館樓層配置圖，找出美術教室、專業電腦教室與教師研究室各自位於幾樓。",
-    question: "【題目 3-2】請對照圖書館樓層圖，輸入 3 位數密碼 (美術教室樓層 / 專業電腦教室樓層 / 教師研究室樓層)："
+    title: "關卡三：【館藏冊數與索書號邏輯減法：《哈利波特》】",
+    location: "電腦查詢區 / 學生手機 (WebOPAC 檢索)",
+    answer: ["822"],
+    hint: "提示：請在 WebOPAC 搜尋《哈利波特》，計算索書號整數和個位數、在架剩餘冊數與出版年首碼。",
+    question: "🏛️ 請在 WebOPAC 搜尋《哈利波特》，回答 3 位數密碼 (數字A: 索書號873.57整數873數字和個位 / 數字B: 館藏(1/3)未外借剩餘冊數 / 數字C: 出版年2000年首碼數字)："
   },
   {
     id: "q_3_3",
     categoryLevel: 3,
-    title: "關卡三：員家科系與專業教室大考驗",
-    location: "3 樓自然科教室與 4 樓商經科教室",
-    answer: "347",
-    hint: "提示：請確認自然科教室與商經科教室樓層，第三位數為兩者樓層相加。",
-    question: "【題目 3-3】請輸入 3 位數密碼 (自然科教室樓層 / 商經科教室樓層 / 兩者樓層相加數字)："
+    title: "關卡三：【筆畫與年份連乘加法：《三體》】",
+    location: "電腦查詢區 / 學生手機 (WebOPAC 檢索)",
+    answer: ["362"],
+    hint: "提示：請在 WebOPAC 搜尋《三體》，查出作者姓名總字數、出版社第一個字筆畫個位數與出版年末兩碼和。",
+    question: "🌌 請在 WebOPAC 搜尋《三體》（貓頭鷹出版），回答 3 位數密碼 (數字A: 作者『劉慈欣』姓名總字數 / 數字B: 出版社『貓頭鷹』首字『貓』筆畫個位 / 數字C: 出版年2011末兩碼和)："
   },
 
-  // ─── 關卡 4：借閱規定除錯題 (2 樓休閒閱讀區) ───
+  // ─── 關卡 4：OPAC 跨欄位進階運算 Ⅲ ───
   {
     id: "q_4_1",
     categoryLevel: 4,
-    title: "關卡四：借閱規定除錯題",
-    location: "2 樓 休閒閱讀區",
-    answer: "521",
-    hint: "提示：請查閱借閱規定摺頁，找出期刊冊數上限、影音部數上限與最高可續借次數。",
-    question: "【題目 4-1】請檢查小員的借閱清單，輸入正確上限組合出的 3 位數密碼 (期刊上限 / 影音上限 / 續借次數)："
+    title: "關卡四：【數字連環扣：《被隱形的女性》】",
+    location: "電腦查詢區 / 學生手機 (WebOPAC 檢索)",
+    answer: ["209"],
+    hint: "提示：請在 WebOPAC 搜尋《被隱形的女性》，計算出版年十位數、索書號小數位連乘個位數與出版社總筆畫個位數。",
+    question: "📊 請在 WebOPAC 搜尋《被隱形的女性》（商周出版），回答 3 位數密碼 (數字A: 出版年2020十位數 / 數字B: 索書號544.52點後5與2相乘個位 / 數字C: 出版社『商周』總筆畫個位)："
   },
   {
-    id: 4,
+    id: "q_4_2",
     categoryLevel: 4,
-    title: "關卡四：借閱規定除錯題",
-    location: "2 樓 休閒閱讀區",
-    answer: "852",
-    hint: "提示：請查閱學生證可借閱的書籍、期刊與影音三者上限冊數。",
-    question: "【題目 4-2】請查閱員家借閱規定，輸入 3 位數密碼 (書籍冊數上限 / 期刊冊數上限 / 影音部數上限)："
+    title: "關卡四：【跨欄位替換暗號：《雪球：巴菲特傳》】",
+    location: "電腦查詢區 / 學生手機 (WebOPAC 檢索)",
+    answer: ["天下29", "4329"],
+    hint: "提示：請在 WebOPAC 搜尋《雪球》，組合出版社前兩個字與出版年的千位及個位數字。",
+    question: "❄️ 請在 WebOPAC 搜尋《雪球》（天下文化出版/2009年），輸入暗號密碼 (出版社名稱前兩個字 + 出版年2009的千位與個位數字組合)："
   },
   {
     id: "q_4_3",
     categoryLevel: 4,
-    title: "關卡四：借閱規定除錯題",
-    location: "2 樓 休閒閱讀區",
-    answer: "212",
-    hint: "提示：請查閱圖書借期週數、可續借次數與續借延長週數。",
-    question: "【題目 4-3】請輸入 3 位數密碼 (借期週數 / 可續借次數 / 續借延長週數)："
+    title: "關卡四：【索書號與筆畫減法：《思考，快與慢》】",
+    location: "電腦查詢區 / 學生手機 (WebOPAC 檢索)",
+    answer: ["554"],
+    hint: "提示：請在 WebOPAC 搜尋《思考，快與慢》，計算出版年數字總和、索書號小數點後數字與出版社筆畫差。",
+    question: "🧠 請在 WebOPAC 搜尋《思考，快與慢》（遠流出版/2012年），回答 3 位數密碼 (數字A: 出版年2012四位數和 / 數字B: 索書號176.5點後數字 / 數字C: 出版社『遠流』兩字筆畫差)："
   },
 
-  // ─── 關卡 5：2 樓流通櫃台實體過卡終極任務 (2 樓流通櫃台) ───
+  // ─── 關卡 5：2 樓流通櫃台實體過卡終極任務 ───
   {
-    id: 5,
+    id: "q_5_1",
     categoryLevel: 5,
     title: "關卡五：2 樓流通櫃台實體過卡終極任務",
     location: "2 樓 流通櫃台",
     answer: "999",
-    hint: "提示：拿著『學生證』與一本普通書籍，到二樓流通櫃台找館員辦理實體過卡借閱，口號：『員家圖書館，閱讀好習慣！』。",
-    question: "【題目 5-1】請全組持學生證與圖書至 2 樓流通櫃台向館員辦理過卡借書，輸入館員給予的終極通關密碼："
+    hint: "提示：拿著『學生證』與一本普通書籍，到二樓流通櫃台找館員辦理過卡借閱，口號：『員家圖書館，閱讀好習慣！』。",
+    question: "【終極考驗】請全組持學生證與圖書至 2 樓流通櫃台向館員辦理過卡借書，輸入館員給予的終極通關密碼："
   },
   {
     id: "q_5_2",
@@ -150,21 +130,12 @@ const DEFAULT_QUESTIONS_POOL = [
     location: "2 樓 流通櫃台",
     answer: "888",
     hint: "提示：請拿學生證至流通櫃檯向館員說出通關口號『閱讀員家，智勝未來！』辦理過卡。",
-    question: "【題目 5-2】請全組至 2 樓流通櫃台完成實體過卡，輸入館員認證後給予的終極密碼："
-  },
-  {
-    id: "q_5_3",
-    categoryLevel: 5,
-    title: "關卡五：2 樓流通櫃台實體過卡終極任務",
-    location: "2 樓 流通櫃台",
-    answer: "777",
-    hint: "提示：全組持學生證至二樓流通櫃檯體驗實體借書過卡，向館員說出『愛上圖書館，學習不中斷！』。",
-    question: "【題目 5-3】請至二樓流通櫃檯體驗實體借書過卡，輸入館員給予的終極密碼："
+    question: "【終極考驗】請全組至 2 樓流通櫃台完成實體過卡，輸入館員認證後給予的終極密碼："
   }
 ];
 
 const DEFAULT_STATE = {
-  status: 'setup', // 'setup' | 'playing' | 'ended'
+  status: 'setup',
   winningQuota: 3,
   startTime: null,
   questions: DEFAULT_QUESTIONS_POOL,
@@ -207,6 +178,7 @@ class GameEngine {
       }
       if (typeof team.stepIndex !== 'number') team.stepIndex = 0;
       if (!team.levelTimes) team.levelTimes = {};
+      if (!team.failedAttempts) team.failedAttempts = {};
     });
 
     return state;
@@ -266,7 +238,6 @@ class GameEngine {
     this.listeners.forEach(cb => cb(this.state));
   }
 
-  // 關卡順序循環移位：第1組 [1,2,3,4,5]、第2組 [2,3,4,5,1]、第3組 [3,4,5,1,2]、第4組 [4,5,1,2,3]、第5組 [5,1,2,3,4]...
   getCyclicSequence(groupNum) {
     const seq = [];
     const startCategory = ((groupNum - 1) % 5) + 1;
@@ -277,7 +248,6 @@ class GameEngine {
     return seq;
   }
 
-  // 為隊伍隨機抽取各關卡的一道題目
   pickQuestionsForSequence(sequence, questionsPool) {
     const assignedMap = {};
     const pool = (questionsPool && questionsPool.length > 0) ? questionsPool : DEFAULT_QUESTIONS_POOL;
@@ -288,7 +258,6 @@ class GameEngine {
         const randomIdx = Math.floor(Math.random() * matchingQuestions.length);
         assignedMap[catLevel] = matchingQuestions[randomIdx];
       } else {
-        // 備用防錯
         assignedMap[catLevel] = pool[0];
       }
     });
@@ -302,7 +271,6 @@ class GameEngine {
     const teamId = `team_${nextGroupNum}`;
     const defaultName = teamName ? teamName.trim() : `第 ${nextGroupNum} 組`;
 
-    // 依據組別號碼產生循環移位順序 (第1組 [1,2,3,4,5]、第2組 [2,3,4,5,1]...)
     const cyclicSequence = this.getCyclicSequence(nextGroupNum);
     const assignedQuestions = this.pickQuestionsForSequence(cyclicSequence, this.state.questions);
 
@@ -314,6 +282,7 @@ class GameEngine {
       levelSequence: cyclicSequence,
       assignedQuestions: assignedQuestions,
       stepIndex: 0,
+      failedAttempts: {},
       completed: false,
       finishTime: null,
       levelTimes: {},
@@ -353,7 +322,7 @@ class GameEngine {
     return (password || '').trim() === '280282';
   }
 
-  // 取得學生端當前題目的詳細資訊 (絕不露出解答)
+  // 取得學生端題目資料（包含答錯次數，用於決定是否開放顯示提示）
   getCurrentQuestionForTeam(teamId) {
     const team = this.state.teams[teamId];
     if (!team) return null;
@@ -374,13 +343,24 @@ class GameEngine {
       const pool = this.state.questions || DEFAULT_QUESTIONS_POOL;
       questionObj = pool.find(q => (q.categoryLevel || q.id) == currentCatLevel) || pool[0];
     }
+
+    const failedCount = (team.failedAttempts && team.failedAttempts[stepIdx]) ? team.failedAttempts[stepIdx] : 0;
     
     return {
       questionObj: questionObj,
       stepNumber: stepIdx + 1,
       totalSteps: 5,
-      catLevel: currentCatLevel
+      catLevel: currentCatLevel,
+      failedAttempts: failedCount
     };
+  }
+
+  checkAnswerMatch(userInput, expectedAnswer) {
+    const cleanInput = (userInput || '').trim().toLowerCase();
+    if (Array.isArray(expectedAnswer)) {
+      return expectedAnswer.some(ans => String(ans || '').trim().toLowerCase() === cleanInput);
+    }
+    return String(expectedAnswer || '').trim().toLowerCase() === cleanInput;
   }
 
   submitAnswer(teamId, answerInput) {
@@ -406,8 +386,7 @@ class GameEngine {
     
     if (!currentQ) return { success: false, message: "關卡資料異常" };
 
-    const cleanInput = (answerInput || '').trim();
-    if (cleanInput === String(currentQ.answer).trim()) {
+    if (this.checkAnswerMatch(answerInput, currentQ.answer)) {
       const now = Date.now();
       team.stepIndex = stepIdx + 1;
       team.levelTimes[team.stepIndex] = now;
@@ -424,7 +403,25 @@ class GameEngine {
         nextStep: team.stepIndex + 1 
       };
     } else {
-      return { success: false, message: "密碼錯誤，請仔細核對解謎細節！" };
+      // 答案不正確：增加答錯計數
+      if (!team.failedAttempts) team.failedAttempts = {};
+      team.failedAttempts[stepIdx] = (team.failedAttempts[stepIdx] || 0) + 1;
+      
+      this.saveState();
+
+      const failedCount = team.failedAttempts[stepIdx];
+      let msg = "解答不正確，請再檢查 WebOPAC 檢索資料或書籍資訊！";
+      if (failedCount >= 2) {
+        msg = "解答不正確！求救提示已為您解鎖，請參考下方提示！";
+      } else {
+        msg = `解答不正確！（已答錯 ${failedCount} 次，答錯 2 次將自動解鎖提示）`;
+      }
+
+      return { 
+        success: false, 
+        message: msg,
+        failedAttempts: failedCount
+      };
     }
   }
 
