@@ -81,9 +81,8 @@
         <span id="level-badge" class="badge-tag badge-gold">
           關卡一 館舍尋蹤 (1/3題 | 全場 1/9 題)
         </span>
-        <span id="level-location" style="font-size: 0.85rem; color: var(--secondary); font-weight: 600;">
-          📍 1 樓 自主學習空間
-        </span>
+        <!-- 地點資訊按照需求完全隱藏，避免學生直接得知地點線索 -->
+        <span id="level-location" style="display: none;"></span>
       </div>
 
       <h3 id="level-title" style="font-size: 1.15rem; color: #fff; margin-bottom: 0.75rem;">
@@ -213,7 +212,6 @@
       const currentLName = levelNames[qInfo.catLevel] || `關卡 ${qInfo.catLevel}`;
 
       document.getElementById('level-badge').textContent = `${currentLName} (${qInfo.levelSubStep}/${qInfo.levelSubTotal}題 | 全場 ${qInfo.stepNumber}/9 題)`;
-      document.getElementById('level-location').textContent = `📍 ${qObj.location || '圖書館'}`;
       document.getElementById('level-title').textContent = qObj.title || '圖書館挑戰關卡';
       document.getElementById('level-question-lbl').textContent = qObj.question || '請輸入解密密碼：';
 
