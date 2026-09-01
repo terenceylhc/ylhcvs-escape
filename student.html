@@ -114,6 +114,25 @@
       </button>
     </div>
 
+    <!-- 階段 3.5：單一關卡通關慶祝過場卡 -->
+    <div id="step-level-clear" class="card" style="display: none; text-align: center; padding: 2rem 1rem;">
+      <div style="font-size: 3.5rem; margin-bottom: 0.5rem;">🌟</div>
+      <h2 id="level-clear-title" style="font-size: 1.4rem; color: var(--gold); margin-bottom: 0.75rem;">
+        🎉 恭喜通過關卡！
+      </h2>
+      <p id="level-clear-desc" style="font-size: 0.95rem; color: var(--text-light); line-height: 1.6; margin-bottom: 1.5rem;">
+        你們已順利完成本關卡考驗，請準備進行下一關挑戰！
+      </p>
+
+      <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 10px; font-size: 0.88rem; color: var(--secondary); margin-bottom: 1.5rem;">
+        ✨ 闖關總進度：已解答 <span id="level-clear-progress" style="color: var(--gold); font-weight: 700;">3</span> / 9 題
+      </div>
+
+      <button id="btn-next-level" class="btn btn-success" style="font-size: 1.1rem; padding: 0.9rem;">
+        ➡️ 前往下一關挑戰
+      </button>
+    </div>
+
     <!-- 階段 4：終極通關卡 -->
     <div id="step-complete" class="card" style="display: none; text-align: center; padding: 2rem 1rem;">
       <div style="font-size: 4rem; margin-bottom: 0.5rem;">🎉</div>
@@ -155,6 +174,7 @@
         document.getElementById('step-register').style.display = 'block';
         document.getElementById('step-waiting').style.display = 'none';
         document.getElementById('step-game').style.display = 'none';
+        document.getElementById('step-level-clear').style.display = 'none';
         document.getElementById('step-complete').style.display = 'none';
         document.getElementById('team-header-info').textContent = "未登錄隊伍";
         
@@ -172,6 +192,7 @@
         document.getElementById('step-register').style.display = 'none';
         document.getElementById('step-waiting').style.display = 'none';
         document.getElementById('step-game').style.display = 'none';
+        document.getElementById('step-level-clear').style.display = 'none';
         document.getElementById('step-complete').style.display = 'block';
 
         const sorted = window.gameEngine.getSortedLeaderboard();
@@ -192,8 +213,36 @@
         document.getElementById('step-register').style.display = 'none';
         document.getElementById('step-waiting').style.display = 'block';
         document.getElementById('step-game').style.display = 'none';
+        document.getElementById('step-level-clear').style.display = 'none';
         document.getElementById('step-complete').style.display = 'none';
         document.getElementById('waiting-team-title').textContent = `【第 ${team.groupNum} 組 - ${team.name}】報到成功！`;
+        return;
+      }
+
+      // 比賽中：檢查是否處於關卡通關過場節點 (stepIndex 為 3, 6, 8 且尚未點擊確認點)
+      const stepIdx = typeof team.stepIndex === 'number' ? team.stepIndex : 0;
+      const ackStep = parseInt(localStorage.getItem('ylhcvs_ack_step_' + currentTeamId) || '0');
+
+      if ((stepIdx === 3 || stepIdx === 6 || stepIdx === 8) && ackStep < stepIdx) {
+        document.getElementById('step-register').style.display = 'none';
+        document.getElementById('step-waiting').style.display = 'none';
+        document.getElementById('step-game').style.display = 'none';
+        document.getElementById('step-level-clear').style.display = 'block';
+        document.getElementById('step-complete').style.display = 'none';
+
+        const clearInfo = {
+          3: { title: "🎉 恭喜通過【關卡一：館舍尋蹤】！", desc: "你們成功探索 1 樓館舍規定的 3 大謎題，獲得前往第二關的解謎權限！", nextName: "關卡二：OPAC 線上檢索" },
+          6: { title: "🎉 恭喜通過【關卡二：WebOPAC 線上檢索】！", desc: "你們成功在 WebOPAC 檢索系統查出 3 大圖書密碼，獲得前往第三關的解謎權限！", nextName: "關卡三：二樓書庫尋寶" },
+          8: { title: "🎉 恭喜通過【關卡三：二樓書庫尋寶】！", desc: "你們成功在二樓書庫特定號段收集到 2 組字母暗號，獲得前往終極第五關的解謎權限！", nextName: "關卡五：流通櫃台過卡" }
+        };
+
+        const currentClear = clearInfo[stepIdx];
+        if (currentClear) {
+          document.getElementById('level-clear-title').textContent = currentClear.title;
+          document.getElementById('level-clear-desc').textContent = currentClear.desc;
+          document.getElementById('level-clear-progress').textContent = `${stepIdx}`;
+          document.getElementById('btn-next-level').innerHTML = `➡️ 前往【${currentClear.nextName}】`;
+        }
         return;
       }
 
@@ -201,6 +250,7 @@
       document.getElementById('step-register').style.display = 'none';
       document.getElementById('step-waiting').style.display = 'none';
       document.getElementById('step-game').style.display = 'block';
+      document.getElementById('step-level-clear').style.display = 'none';
       document.getElementById('step-complete').style.display = 'none';
 
       const qInfo = window.gameEngine.getCurrentQuestionForTeam(currentTeamId);
@@ -263,6 +313,15 @@
     document.getElementById('btn-re-register').addEventListener('click', () => {
       currentTeamId = null;
       localStorage.removeItem('ylhcvs_current_team_id');
+      renderStudentUI(window.gameEngine.state);
+    });
+
+    document.getElementById('btn-next-level').addEventListener('click', () => {
+      if (!currentTeamId) return;
+      const team = window.gameEngine.state.teams[currentTeamId];
+      if (team && typeof team.stepIndex === 'number') {
+        localStorage.setItem('ylhcvs_ack_step_' + currentTeamId, team.stepIndex.toString());
+      }
       renderStudentUI(window.gameEngine.state);
     });
 
