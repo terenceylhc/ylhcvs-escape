@@ -30,16 +30,16 @@
         👥 輸入隊名開始挑戰
       </h2>
       <p style="font-size: 0.85rem; color: var(--text-muted); text-align: center; margin-bottom: 1.25rem;">
-        請每組（2～4 人）由一名代表輸入隊名，系統將自動為您開啟 5 大關卡闖關之旅：
+        請每組（2～4 人）由一名代表輸入隊名，系統將自動為您開啟 4 大關卡 (共 9 題) 闖關之旅：
       </p>
 
       <label style="font-size: 0.9rem; font-weight: 600;">隊伍名稱 (隊名)：</label>
       <input type="text" id="input-team-name" class="input-field" placeholder="例如：員家勇士隊 / 閱讀學霸隊">
 
-      <label style="font-size: 0.9rem; font-weight: 600;">組員姓名 (以逗號分隔)：</label>
+      <label style="font-size: 0.9rem; font-weight: 600;">組員姓名 (以逗號分隔，選填)：</label>
       <input type="text" id="input-members" class="input-field" placeholder="例如：王小明, 張小華, 李小英">
 
-      <button id="btn-auto-register" class="btn btn-primary" style="font-size: 1.1rem; padding: 1rem; margin-top: 0.5rem;">
+      <button id="btn-auto-register" class="btn btn-primary" style="font-size: 1.1rem; padding: 1rem; margin-top: 0.5rem; width: 100%;">
         🚀 進入密室挑戰
       </button>
     </div>
@@ -55,9 +55,13 @@
         <span style="color: var(--secondary); font-weight: 700;">請觀看大螢幕，等待老師按下【開始遊戲】……</span>
       </p>
 
-      <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 10px; font-size: 0.85rem; color: var(--text-muted);">
+      <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 10px; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">
         💡 提示：比賽將由關卡一（館舍尋蹤 3 題）➔ 關卡二（OPAC 檢索 3 題）➔ 關卡三（二樓書庫 2 題）➔ 關卡五（流通櫃台 1 題）順序進行，祝您奪得第一名！
       </div>
+
+      <button id="btn-re-register" class="btn" style="background: rgba(255,255,255,0.1); color: var(--text-muted); font-size: 0.85rem; padding: 0.5rem 1rem;">
+        ✏️ 修改隊名 / 重新報到
+      </button>
     </div>
 
     <!-- 階段 3：闖關解謎卡 -->
@@ -122,12 +126,24 @@
     let currentTeamId = localStorage.getItem('ylhcvs_current_team_id') || null;
 
     function renderStudentUI(state) {
+      const regBtn = document.getElementById('btn-auto-register');
+
+      // 檢查目前的 currentTeamId 是否有效且依然存在於全域 state.teams
+      if (currentTeamId && state.teams && !state.teams[currentTeamId]) {
+        // 若老師按了「清空報到資料庫」，則自動重置 localCurrentTeam
+        currentTeamId = null;
+        localStorage.removeItem('ylhcvs_current_team_id');
+      }
+
       if (!currentTeamId || !state.teams[currentTeamId]) {
         document.getElementById('step-register').style.display = 'block';
         document.getElementById('step-waiting').style.display = 'none';
         document.getElementById('step-game').style.display = 'none';
         document.getElementById('step-complete').style.display = 'none';
         document.getElementById('team-header-info').textContent = "未登錄隊伍";
+        
+        regBtn.disabled = false;
+        regBtn.innerHTML = "🚀 進入密室挑戰";
         return;
       }
 
@@ -200,13 +216,31 @@
     }
 
     document.getElementById('btn-auto-register').addEventListener('click', () => {
-      const teamName = document.getElementById('input-team-name').value;
-      const members = document.getElementById('input-members').value;
+      const regBtn = document.getElementById('btn-auto-register');
+      const teamNameInput = document.getElementById('input-team-name');
+      const membersInput = document.getElementById('input-members');
+
+      let teamName = teamNameInput.value.trim();
+      if (!teamName) {
+        teamName = "員家闖關隊";
+        teamNameInput.value = teamName;
+      }
+      const members = membersInput.value.trim();
+
+      // 按鈕連點防護 Lock
+      regBtn.disabled = true;
+      regBtn.innerHTML = "⏳ 正在進入密室等待區...";
 
       const newTeam = window.gameEngine.autoRegisterTeam(teamName, members);
       currentTeamId = newTeam.id;
       localStorage.setItem('ylhcvs_current_team_id', currentTeamId);
       
+      renderStudentUI(window.gameEngine.state);
+    });
+
+    document.getElementById('btn-re-register').addEventListener('click', () => {
+      currentTeamId = null;
+      localStorage.removeItem('ylhcvs_current_team_id');
       renderStudentUI(window.gameEngine.state);
     });
 
