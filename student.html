@@ -30,7 +30,7 @@
         👥 輸入隊名開始挑戰
       </h2>
       <p style="font-size: 0.85rem; color: var(--text-muted); text-align: center; margin-bottom: 1.25rem;">
-        請每組（2～4 人）由一名代表輸入隊名，系統將自動分配組別與闖關路線：
+        請每組（2～4 人）由一名代表輸入隊名，系統將自動為您開啟 4 大關卡 (共 9 題) 闖關之旅：
       </p>
 
       <label style="font-size: 0.9rem; font-weight: 600;">隊伍名稱 (隊名)：</label>
@@ -56,7 +56,7 @@
       </p>
 
       <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 10px; font-size: 0.85rem; color: var(--text-muted);">
-        💡 提示：開始遊戲後，系統已為您的團隊安排專屬路線，祝您奪得第一名！
+        💡 提示：比賽將由關卡一（館舍尋蹤 3 題）➔ 關卡二（OPAC 檢索 3 題）➔ 關卡三（二樓書庫 2 題）➔ 關卡五（流通櫃台 1 題）順序進行，祝您奪得第一名！
       </div>
     </div>
 
@@ -64,8 +64,8 @@
     <div id="step-game" class="card" style="display: none;">
       
       <!-- 頂部進度條與地點提示 -->
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-        <span id="level-badge" class="badge-tag badge-warning" style="font-size: 0.9rem;">第 1 / 5 關</span>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+        <span id="level-badge" class="badge-tag badge-warning" style="font-size: 0.9rem;">關卡 1 (第 1/9 題)</span>
         <span id="level-location" style="font-size: 0.85rem; color: var(--secondary); font-weight: 700;">📍 地點：載入中...</span>
       </div>
 
@@ -97,7 +97,7 @@
       <div style="font-size: 4rem; margin-bottom: 0.5rem;">🎉</div>
       <h2 style="font-size: 1.6rem; color: var(--gold); margin-bottom: 0.5rem;">恭喜全卡通關！</h2>
       <p style="font-size: 1rem; color: var(--text-muted); margin-bottom: 1.5rem;">
-        你們成功順利解答員林家商圖書館 5 大關卡！
+        你們成功解答員林家商圖書館 9 大闖關考驗，獲得圖書館智慧金鑰！
       </p>
 
       <div style="background: rgba(255,255,255,0.05); padding: 1.25rem; border-radius: 12px; margin-bottom: 1.5rem;">
@@ -174,7 +174,10 @@
 
       const qObj = qInfo.questionObj;
 
-      document.getElementById('level-badge').textContent = `第 ${qInfo.stepNumber} / ${qInfo.totalSteps} 關`;
+      const levelNames = { 1: "關卡一 館舍尋蹤", 2: "關卡二 OPAC檢索", 3: "關卡三 二樓書庫", 5: "關卡五 流通櫃台" };
+      const currentLName = levelNames[qInfo.catLevel] || `關卡 ${qInfo.catLevel}`;
+
+      document.getElementById('level-badge').textContent = `${currentLName} (${qInfo.levelSubStep}/${qInfo.levelSubTotal}題 | 全場 ${qInfo.stepNumber}/9 題)`;
       document.getElementById('level-location').textContent = `📍 ${qObj.location || '圖書館'}`;
       document.getElementById('level-title').textContent = qObj.title || '圖書館挑戰關卡';
       document.getElementById('level-question-lbl').textContent = qObj.question || '請輸入解密密碼：';
