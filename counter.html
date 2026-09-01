@@ -28,23 +28,23 @@
     
     <!-- 條碼槍直刷區域 -->
     <div class="card" style="text-align: center; border: 2px solid var(--secondary); background: rgba(6, 182, 212, 0.05); padding: 1.5rem;">
-      <h2 style="font-size: 1.3rem; color: var(--gold); margin-bottom: 0.5rem;">🔫 1. 條碼槍自動刷書過卡區</h2>
+      <h2 style="font-size: 1.3rem; color: var(--gold); margin-bottom: 0.5rem;">🔫 1. 條碼槍自動刷書智慧比對區</h2>
       <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
-        請館員點擊下方輸入框後，使用條碼槍掃描學生帶來的【圖書條碼】或【學生證條碼】，系統將自動為目前在櫃檯的隊伍完成過卡！
+        請點擊下方輸入框，使用條碼槍掃描學生帶來的【圖書條碼】。系統將<strong style="color:var(--gold);">自動比對條碼對應之組別</strong>並為該組完成過卡！
       </p>
 
-      <input type="text" id="barcode-input" class="input-field" placeholder="請點此處，使用條碼槍掃描條碼..." style="font-size: 1.3rem; text-align: center; max-width: 450px; border-color: var(--secondary);" autofocus>
-      <div id="barcode-msg" style="font-weight: 700; color: var(--success); margin-top: 0.5rem;"></div>
+      <input type="text" id="barcode-input" class="input-field" placeholder="請點此處，使用條碼槍掃描條碼..." style="font-size: 1.3rem; text-align: center; max-width: 480px; border-color: var(--secondary);" autofocus>
+      <div id="barcode-msg" style="font-weight: 700; font-size: 1.05rem; color: var(--success); margin-top: 0.75rem; min-height: 1.5rem;"></div>
     </div>
 
     <!-- 館員一鍵手動點擊區域 -->
     <div class="card" style="margin-top: 1.5rem;">
-      <h3 style="font-size: 1.1rem; color: var(--text-light); margin-bottom: 1rem;">👥 2. 櫃檯一鍵手動審核過卡（點擊隊伍即可通過）</h3>
+      <h3 style="font-size: 1.1rem; color: var(--text-light); margin-bottom: 0.5rem;">👥 2. 櫃檯各組指定圖書與一鍵過卡</h3>
       <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
-        當學生帶學生證與圖書至櫃檯完成刷書後，館員亦可直接點擊下方對應組別的【過卡通過】按鈕：
+        當學生帶圖書至櫃檯，您亦可直接對照組別所持圖書，點擊【✅ 刷書認證通過】：
       </p>
 
-      <div id="counter-teams-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem;">
+      <div id="counter-teams-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem;">
         <!-- 動態載入各組 -->
       </div>
     </div>
@@ -71,24 +71,33 @@
         div.style.background = team.completed ? 'rgba(16, 185, 129, 0.1)' : '#1e293b';
         div.style.border = team.completed ? '1px solid var(--success)' : '1px solid rgba(255,255,255,0.08)';
 
-        const seq = team.levelSequence || [1,2,3,4,5];
-        const isAtLevel5 = !team.completed && seq[team.stepIndex] === 5;
+        const qInfo = window.gameEngine.getCurrentQuestionForTeam(team.id);
+        const isAtLevel5 = !team.completed && qInfo && qInfo.catLevel === 5;
+        const currentQ = qInfo ? qInfo.questionObj : null;
 
-        let statusText = `<span style="color:var(--text-muted);">第 ${team.stepIndex + 1} 關進行中</span>`;
+        let bookHint = "";
+        let statusText = `<span style="color:var(--text-muted);">進度：第 ${team.stepIndex + 1} / 9 題</span>`;
+
         if (team.completed) {
-          statusText = `<span style="color:var(--success); font-weight:700;">✅ 已全卡通關</span>`;
+          statusText = `<span style="color:var(--success); font-weight:700;">✅ 已全卡通關完賽</span>`;
         } else if (isAtLevel5) {
-          statusText = `<span style="color:var(--gold); font-weight:700;" class="animate-pulse">📍 正在櫃檯辦理過卡</span>`;
+          statusText = `<span style="color:var(--gold); font-weight:700;" class="animate-pulse">📍 關卡五櫃檯過卡中！</span>`;
+          if (currentQ && currentQ.bookTitle) {
+            bookHint = `<div style="font-size:0.85rem; color:var(--secondary); margin-top:0.3rem; font-weight:600;">📘 指定過卡圖書：${currentQ.bookTitle}<br><span style="font-size:0.78rem; opacity:0.8;">(條碼/登錄號: ${currentQ.barcode})</span></div>`;
+          }
         }
 
         div.innerHTML = `
           <div style="font-weight:700; font-size:1.05rem; margin-bottom:0.25rem;">
             【第 ${team.groupNum} 組】 ${team.name}
           </div>
-          <div style="font-size:0.8rem; margin-bottom:0.75rem;">${statusText}</div>
-          ${team.completed 
-            ? `<button class="btn" style="background:#334155; color:var(--text-muted); cursor:default;" disabled>已完成通關</button>` 
-            : `<button class="btn btn-success" onclick="passTeam('${team.id}')">✅ 刷書認證通過</button>`}
+          <div style="font-size:0.82rem; margin-bottom:0.5rem;">${statusText}</div>
+          ${bookHint}
+          <div style="margin-top:0.75rem;">
+            ${team.completed 
+              ? `<button class="btn" style="background:#334155; color:var(--text-muted); cursor:default; width:100%;" disabled>已完成通關</button>` 
+              : `<button class="btn btn-success" style="width:100%;" onclick="passTeam('${team.id}')">✅ 刷書認證通過</button>`}
+          </div>
         `;
         grid.appendChild(div);
       });
@@ -99,31 +108,60 @@
       const team = state.teams[teamId];
       if (!team) return;
 
-      // 找到關卡 5 密碼或強制設置通關
-      const currentCat = (team.levelSequence || [1,2,3,4,5])[team.stepIndex || 0];
-      let currentQ = (team.assignedQuestions && team.assignedQuestions[currentCat]) ? team.assignedQuestions[currentCat] : null;
-      let ans = currentQ ? (Array.isArray(currentQ.answer) ? currentQ.answer[0] : currentQ.answer) : "999";
+      const qInfo = window.gameEngine.getCurrentQuestionForTeam(teamId);
+      let currentQ = qInfo ? qInfo.questionObj : null;
+      let ans = currentQ ? (Array.isArray(currentQ.answer) ? currentQ.answer[0] : currentQ.answer) : "PASS888";
+
+      const bookName = currentQ && currentQ.bookTitle ? currentQ.bookTitle : "圖書";
 
       window.gameEngine.submitAnswer(teamId, ans);
-      document.getElementById('barcode-msg').textContent = `🎉 【第 ${team.groupNum} 組 - ${team.name}】已成功過卡通關！`;
-      setTimeout(() => { document.getElementById('barcode-msg').textContent = ''; }, 4000);
+      
+      const msgBox = document.getElementById('barcode-msg');
+      msgBox.style.color = "var(--success)";
+      msgBox.innerHTML = `🎉 【第 ${team.groupNum} 組 - ${team.name}】出示 ${bookName} 成功完成實體過卡！`;
+      setTimeout(() => { msgBox.innerHTML = ''; }, 5000);
     }
 
-    // 條碼槍輸入處理
+    // 條碼槍輸入智慧比對處理
     document.getElementById('barcode-input').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
-        const val = e.target.value.trim();
+        const val = e.target.value.trim().toLowerCase();
         e.target.value = '';
         if (!val) return;
 
-        // 尋找目前正在第 5 關或排在最前面的未完賽隊伍進行過卡
-        const teams = window.gameEngine.getSortedLeaderboard();
-        const activeTeam = teams.find(t => !t.completed);
+        const msgBox = document.getElementById('barcode-msg');
 
-        if (activeTeam) {
-          passTeam(activeTeam.id);
+        // 1. 取得所有未完賽隊伍
+        const activeTeams = Object.values(window.gameEngine.state.teams || {}).filter(t => !t.completed);
+        if (activeTeams.length === 0) {
+          msgBox.style.color = "var(--gold)";
+          msgBox.textContent = "所有隊伍皆已通關完賽！";
+          return;
+        }
+
+        // 2. 智慧比對：哪一組當前題目的解答包含這張條碼 (val)
+        let matchedTeam = activeTeams.find(team => {
+          const qInfo = window.gameEngine.getCurrentQuestionForTeam(team.id);
+          if (qInfo && qInfo.questionObj) {
+            return window.gameEngine.checkAnswerMatch(val, qInfo.questionObj.answer);
+          }
+          return false;
+        });
+
+        if (matchedTeam) {
+          passTeam(matchedTeam.id);
         } else {
-          alert('所有隊伍皆已完賽或無進行中隊伍！');
+          // 若掃描萬能測試碼 PASS888 或 999 ➔ 通過目前在關卡五最靠前的隊伍
+          if (['pass888', '999'].includes(val)) {
+            const l5Team = activeTeams.find(t => {
+              const qInfo = window.gameEngine.getCurrentQuestionForTeam(t.id);
+              return qInfo && qInfo.catLevel === 5;
+            }) || activeTeams[0];
+            if (l5Team) passTeam(l5Team.id);
+          } else {
+            msgBox.style.color = "var(--danger)";
+            msgBox.innerHTML = `⚠️ 條碼 <code style="background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px;">${val}</code> 未匹配到任何目前在櫃檯隊伍的指定圖書！請確認書本。`;
+          }
         }
       }
     });
