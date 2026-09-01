@@ -1,7 +1,9 @@
 /**
- * 員林家商圖書館密室逃脫 - 全域通訊與狀態控制核心 (App Core v22.0 - 櫃台條碼智慧1對1對應完賽版)
+ * 員林家商圖書館密室逃脫 - 全域通訊與狀態控制核心 (App Core v24.0 - 雲端權限檢測與強固融合版)
  * 貼紙規則：全數黏貼於圖書【書背索書號標籤處】，同學目視搜尋不需抽取書籍！
- * 關卡五智慧對應：條碼槍一刷，系統 100% 精準自動比對出該書籍屬於哪一組，絕不認錯隊伍！
+ * 專為跨裝置 (4G/5G 手機連線至大螢幕) 打造：
+ * 1. 自動融合雲端與本地隊伍，避免網路延遲或權限問題擦除本地隊伍。
+ * 2. 具備 Firebase 權限異常自動提醒與容錯機制。
  */
 
 const DEFAULT_QUESTIONS_POOL = [
@@ -426,12 +428,13 @@ class GameEngine {
     this.state = this.loadState();
     this.listeners = [];
     this.firebaseDb = null;
+    this.firebaseError = null;
 
     this.initFirebase();
 
     this.channel.onmessage = (event) => {
       if (event.data && event.data.type === 'STATE_UPDATE') {
-        this.state = this.sanitizeState(event.data.state);
+        this.mergeState(event.data.state);
         this.notifyListeners();
       }
     };
@@ -448,7 +451,7 @@ class GameEngine {
     if (!state.winningQuota) state.winningQuota = 3;
 
     Object.values(state.teams).forEach(team => {
-      team.levelSequence = [1, 2, 3, 5]; // 固定為 1 -> 2 -> 3 -> 5
+      team.levelSequence = [1, 2, 3, 5];
 
       if (!team.assignedQuestionsList || !Array.isArray(team.assignedQuestionsList) || team.assignedQuestionsList.length !== 9) {
         team.assignedQuestionsList = this.generateQuestionsListForTeam(team.groupNum || 1, state.questions);
@@ -459,6 +462,25 @@ class GameEngine {
     });
 
     return state;
+  }
+
+  mergeState(incomingState) {
+    if (!incomingState) return;
+    const sanitized = this.sanitizeState(incomingState);
+
+    // 智能融合本地隊伍與遠端隊伍：保留本地新增隊伍，合併雲端隊伍，絕不清除已存在隊伍
+    const mergedTeams = { ...(sanitized.teams || {}) };
+
+    if (this.state && this.state.teams) {
+      Object.keys(this.state.teams).forEach(tid => {
+        if (!mergedTeams[tid]) {
+          mergedTeams[tid] = this.state.teams[tid];
+        }
+      });
+    }
+
+    this.state = sanitized;
+    this.state.teams = mergedTeams;
   }
 
   initFirebase() {
@@ -473,13 +495,18 @@ class GameEngine {
         this.firebaseDb.ref('ylhcvs_game_state').on('value', (snapshot) => {
           const val = snapshot.val();
           if (val) {
-            this.state = this.sanitizeState(val);
+            this.mergeState(val);
             localStorage.setItem('ylhcvs_escape_state', JSON.stringify(this.state));
             this.notifyListeners();
           }
+        }, (error) => {
+          console.error("❌ Firebase 讀取失敗（請檢查 Firebase Database 規則權限）：", error);
+          this.firebaseError = error.message;
+          this.notifyListeners();
         });
       } catch (e) {
         console.warn("Firebase 連線未設置，切換為 LocalStorage 廣播模式：", e);
+        this.firebaseError = e.message;
       }
     }
   }
@@ -500,7 +527,13 @@ class GameEngine {
     this.channel.postMessage({ type: 'STATE_UPDATE', state: this.state });
     
     if (this.firebaseDb) {
-      this.firebaseDb.ref('ylhcvs_game_state').set(this.state);
+      this.firebaseDb.ref('ylhcvs_game_state').set(this.state).then(() => {
+        this.firebaseError = null;
+      }).catch(err => {
+        console.error("❌ Firebase 寫入被拒（請開啟 Firebase 規則 .write: true）：", err);
+        this.firebaseError = "PERMISSION_DENIED: Firebase 資料庫規則限制寫入！";
+        this.notifyListeners();
+      });
     }
 
     this.notifyListeners();
@@ -515,10 +548,6 @@ class GameEngine {
     this.listeners.forEach(cb => cb(this.state));
   }
 
-  /**
-   * 根據組別號碼產生該組 9 題獨立闖關題目 (關卡一 3 題 + 關卡二 3 題 + 關卡三 2 題 + 關卡五 1 題)
-   * 防擁擠機制：關卡三與關卡五透過算法錯開圖書與架位，全場不搶書！
-   */
   generateQuestionsListForTeam(groupNum, questionsPool) {
     const pool = (questionsPool && questionsPool.length > 0) ? questionsPool : DEFAULT_QUESTIONS_POOL;
     
@@ -527,50 +556,51 @@ class GameEngine {
     const cat3 = pool.filter(q => q.categoryLevel === 3);
     const cat5 = pool.filter(q => q.categoryLevel === 5);
 
-    // 陣列洗牌隨機函數
     const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
 
-    // 1. 關卡一：隨機 3 題
     const qL1 = shuffle(cat1).slice(0, 3);
-    
-    // 2. 關卡二：隨機 3 題
     const qL2 = shuffle(cat2).slice(0, 3);
 
-    // 3. 關卡三：防擁擠錯開分配 2 題 (按組別 offset 輪替)
     const offset3 = ((groupNum - 1) * 2) % (cat3.length || 12);
     const qL3_1 = cat3[offset3] || cat3[0];
     const qL3_2 = cat3[(offset3 + 1) % cat3.length] || cat3[1];
     const qL3 = [qL3_1, qL3_2];
 
-    // 4. 關卡五：防擁擠錯開分配 1 本指定實體過卡圖書
     const offset5 = (groupNum - 1) % (cat5.length || 10);
     const qL5 = [cat5[offset5] || cat5[0]];
 
-    // 組合為 9 題連續題目串列
     return [...qL1, ...qL2, ...qL3, ...qL5];
   }
 
   autoRegisterTeam(teamName, members) {
+    const defaultName = teamName ? teamName.trim() : "";
+    const cleanMembers = members ? members.trim() : "";
+
+    const existingTeam = Object.values(this.state.teams).find(t => t.name === defaultName && !t.completed);
+    if (existingTeam) {
+      return existingTeam;
+    }
+
     const teamKeys = Object.keys(this.state.teams);
     const nextGroupNum = teamKeys.length + 1;
-    const teamId = `team_${nextGroupNum}`;
-    const defaultName = teamName ? teamName.trim() : `第 ${nextGroupNum} 組`;
+    const teamId = `team_${nextGroupNum}_${Date.now().toString().slice(-4)}`;
+    const finalName = defaultName || `第 ${nextGroupNum} 組`;
 
     const questionsList = this.generateQuestionsListForTeam(nextGroupNum, this.state.questions);
 
     const newTeam = {
       id: teamId,
       groupNum: nextGroupNum,
-      name: defaultName,
-      members: members ? members.trim() : "",
+      name: finalName,
+      members: cleanMembers,
       levelSequence: [1, 2, 3, 5],
       assignedQuestionsList: questionsList,
-      stepIndex: 0, // 0 到 8 (共 9 題)
+      stepIndex: 0,
       failedAttempts: {},
       completed: false,
       finishTime: null,
       levelTimes: {},
-      startTime: Date.now()
+      startTime: this.state.startTime || Date.now()
     };
 
     this.state.teams[teamId] = newTeam;
@@ -620,7 +650,6 @@ class GameEngine {
     const currentQ = qList[stepIdx];
     const catLevel = currentQ.categoryLevel;
 
-    // 計算在該關卡內的子題數 (例如：關卡一 1/3, 2/3, 3/3)
     let levelSubStep = 1;
     let levelSubTotal = 1;
 
