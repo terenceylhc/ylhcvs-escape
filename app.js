@@ -1,9 +1,9 @@
 /**
- * 員林家商圖書館密室逃脫 - 全域通訊與狀態控制核心 (App Core v26.0 - 跨裝置與異步載入終極防護版)
+ * 員林家商圖書館密室逃脫 - 全域通訊與狀態控制核心 (App Core v27.0 - Zero-Undefined 零異常防護版)
  * 貼紙規則：全數黏貼於圖書【書背索書號標籤處】，同學目視搜尋不需抽取書籍！
- * 解決手機/異地瀏覽器與 Firebase 載入時序不一導致的連線失敗：
- * 1. 自動重試 Firebase 初始 (Auto Retry)，避免行動網路或 CDN 載入時間差。
- * 2. .info/connected 實時偵測＋自動發布新隊伍。
+ * 徹底修復 Firebase 寫入時 value argument contains undefined 異常：
+ * 1. 題目派發採用 Safe Fallback 防護，確保 assignedQuestionsList 絕對為 9 題完整純物物件。
+ * 2. 寫入 Firebase 前自動做 JSON 清理過濾 (cleanObjectForFirebase)，移除任何 undefined 變數。
  */
 
 const DEFAULT_QUESTIONS_POOL = [
@@ -441,6 +441,13 @@ class GameEngine {
     };
   }
 
+  cleanObjectForFirebase(obj) {
+    if (!obj) return {};
+    return JSON.parse(JSON.stringify(obj, (key, value) => {
+      return value === undefined ? null : value;
+    }));
+  }
+
   sanitizeState(rawState) {
     if (!rawState) return JSON.parse(JSON.stringify(DEFAULT_STATE));
     const state = rawState;
@@ -454,7 +461,7 @@ class GameEngine {
     Object.values(state.teams).forEach(team => {
       team.levelSequence = [1, 2, 3, 5];
 
-      if (!team.assignedQuestionsList || !Array.isArray(team.assignedQuestionsList) || team.assignedQuestionsList.length !== 9) {
+      if (!team.assignedQuestionsList || !Array.isArray(team.assignedQuestionsList) || team.assignedQuestionsList.length !== 9 || team.assignedQuestionsList.some(q => !q)) {
         team.assignedQuestionsList = this.generateQuestionsListForTeam(team.groupNum || 1, state.questions);
       }
       if (typeof team.stepIndex !== 'number') team.stepIndex = 0;
@@ -552,7 +559,8 @@ class GameEngine {
     this.channel.postMessage({ type: 'STATE_UPDATE', state: this.state });
     
     if (this.firebaseDb) {
-      this.firebaseDb.ref('ylhcvs_game_state').set(this.state).then(() => {
+      const cleanData = this.cleanObjectForFirebase(this.state);
+      this.firebaseDb.ref('ylhcvs_game_state').set(cleanData).then(() => {
         this.firebaseStatus = "CONNECTED";
         this.firebaseError = null;
       }).catch(err => {
@@ -576,27 +584,48 @@ class GameEngine {
   }
 
   generateQuestionsListForTeam(groupNum, questionsPool) {
-    const pool = (questionsPool && questionsPool.length > 0) ? questionsPool : DEFAULT_QUESTIONS_POOL;
-    
-    const cat1 = pool.filter(q => q.categoryLevel === 1);
-    const cat2 = pool.filter(q => q.categoryLevel === 2);
-    const cat3 = pool.filter(q => q.categoryLevel === 3);
-    const cat5 = pool.filter(q => q.categoryLevel === 5);
+    let pool = DEFAULT_QUESTIONS_POOL;
+    if (Array.isArray(questionsPool) && questionsPool.length > 0) {
+      const validFiltered = questionsPool.filter(q => q != null && typeof q === 'object' && q.categoryLevel);
+      if (validFiltered.length >= 10) {
+        pool = validFiltered;
+      }
+    }
+
+    const cat1 = pool.filter(q => q && q.categoryLevel === 1);
+    const cat2 = pool.filter(q => q && q.categoryLevel === 2);
+    const cat3 = pool.filter(q => q && q.categoryLevel === 3);
+    const cat5 = pool.filter(q => q && q.categoryLevel === 5);
+
+    const safeCat1 = cat1.length >= 3 ? cat1 : DEFAULT_QUESTIONS_POOL.filter(q => q.categoryLevel === 1);
+    const safeCat2 = cat2.length >= 3 ? cat2 : DEFAULT_QUESTIONS_POOL.filter(q => q.categoryLevel === 2);
+    const safeCat3 = cat3.length >= 2 ? cat3 : DEFAULT_QUESTIONS_POOL.filter(q => q.categoryLevel === 3);
+    const safeCat5 = cat5.length >= 1 ? cat5 : DEFAULT_QUESTIONS_POOL.filter(q => q.categoryLevel === 5);
 
     const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
 
-    const qL1 = shuffle(cat1).slice(0, 3);
-    const qL2 = shuffle(cat2).slice(0, 3);
+    const qL1 = shuffle(safeCat1).slice(0, 3);
+    const qL2 = shuffle(safeCat2).slice(0, 3);
 
-    const offset3 = ((groupNum - 1) * 2) % (cat3.length || 12);
-    const qL3_1 = cat3[offset3] || cat3[0];
-    const qL3_2 = cat3[(offset3 + 1) % cat3.length] || cat3[1];
+    const offset3 = ((groupNum - 1) * 2) % (safeCat3.length || 12);
+    const qL3_1 = safeCat3[offset3] || safeCat3[0];
+    const qL3_2 = safeCat3[(offset3 + 1) % safeCat3.length] || safeCat3[1];
     const qL3 = [qL3_1, qL3_2];
 
-    const offset5 = (groupNum - 1) % (cat5.length || 10);
-    const qL5 = [cat5[offset5] || cat5[0]];
+    const offset5 = (groupNum - 1) % (safeCat5.length || 10);
+    const qL5 = [safeCat5[offset5] || safeCat5[0]];
 
-    return [...qL1, ...qL2, ...qL3, ...qL5];
+    const result = [...qL1, ...qL2, ...qL3, ...qL5].filter(q => q != null);
+    
+    // 確保長度恆等於 9，任何異常時以預設題庫補足
+    const defaultPool = DEFAULT_QUESTIONS_POOL;
+    let idx = 0;
+    while (result.length < 9) {
+      result.push(defaultPool[idx % defaultPool.length]);
+      idx++;
+    }
+
+    return result;
   }
 
   autoRegisterTeam(teamName, members) {
@@ -675,7 +704,9 @@ class GameEngine {
     }
 
     const currentQ = qList[stepIdx];
-    const catLevel = currentQ.categoryLevel;
+    if (!currentQ) return null;
+
+    const catLevel = currentQ.categoryLevel || 1;
 
     let levelSubStep = 1;
     let levelSubTotal = 1;
