@@ -1,9 +1,9 @@
 /**
- * 員林家商圖書館密室逃脫 - 全域通訊與狀態控制核心 (App Core v24.0 - 雲端權限檢測與強固融合版)
+ * 員林家商圖書館密室逃脫 - 全域通訊與狀態控制核心 (App Core v26.0 - 跨裝置與異步載入終極防護版)
  * 貼紙規則：全數黏貼於圖書【書背索書號標籤處】，同學目視搜尋不需抽取書籍！
- * 專為跨裝置 (4G/5G 手機連線至大螢幕) 打造：
- * 1. 自動融合雲端與本地隊伍，避免網路延遲或權限問題擦除本地隊伍。
- * 2. 具備 Firebase 權限異常自動提醒與容錯機制。
+ * 解決手機/異地瀏覽器與 Firebase 載入時序不一導致的連線失敗：
+ * 1. 自動重試 Firebase 初始 (Auto Retry)，避免行動網路或 CDN 載入時間差。
+ * 2. .info/connected 實時偵測＋自動發布新隊伍。
  */
 
 const DEFAULT_QUESTIONS_POOL = [
@@ -428,6 +428,7 @@ class GameEngine {
     this.state = this.loadState();
     this.listeners = [];
     this.firebaseDb = null;
+    this.firebaseStatus = "INIT";
     this.firebaseError = null;
 
     this.initFirebase();
@@ -468,7 +469,6 @@ class GameEngine {
     if (!incomingState) return;
     const sanitized = this.sanitizeState(incomingState);
 
-    // 智能融合本地隊伍與遠端隊伍：保留本地新增隊伍，合併雲端隊伍，絕不清除已存在隊伍
     const mergedTeams = { ...(sanitized.teams || {}) };
 
     if (this.state && this.state.teams) {
@@ -483,31 +483,56 @@ class GameEngine {
     this.state.teams = mergedTeams;
   }
 
-  initFirebase() {
-    if (typeof firebase !== 'undefined' && window.firebaseConfig && window.firebaseConfig.databaseURL && !window.firebaseConfig.databaseURL.includes('YOUR_PROJECT_ID')) {
-      try {
-        if (!firebase.apps.length) {
-          firebase.initializeApp(window.firebaseConfig);
-        }
-        this.firebaseDb = firebase.database();
-        console.log("🔥 Firebase 跨裝置即時資料庫連線成功！");
-
-        this.firebaseDb.ref('ylhcvs_game_state').on('value', (snapshot) => {
-          const val = snapshot.val();
-          if (val) {
-            this.mergeState(val);
-            localStorage.setItem('ylhcvs_escape_state', JSON.stringify(this.state));
-            this.notifyListeners();
-          }
-        }, (error) => {
-          console.error("❌ Firebase 讀取失敗（請檢查 Firebase Database 規則權限）：", error);
-          this.firebaseError = error.message;
-          this.notifyListeners();
-        });
-      } catch (e) {
-        console.warn("Firebase 連線未設置，切換為 LocalStorage 廣播模式：", e);
-        this.firebaseError = e.message;
+  initFirebase(retryCount = 0) {
+    if (typeof firebase === 'undefined' || !window.firebaseConfig) {
+      if (retryCount < 5) {
+        setTimeout(() => this.initFirebase(retryCount + 1), 500);
+      } else {
+        this.firebaseStatus = "NOT_CONFIGURED";
+        this.firebaseError = "未偵測到 firebase-config.js 金鑰設定";
+        this.notifyListeners();
       }
+      return;
+    }
+
+    if (this.firebaseDb) return;
+
+    try {
+      if (!firebase.apps.length) {
+        firebase.initializeApp(window.firebaseConfig);
+      }
+      this.firebaseDb = firebase.database();
+
+      const connectedRef = this.firebaseDb.ref(".info/connected");
+      connectedRef.on("value", (snap) => {
+        if (snap.val() === true) {
+          console.log("🔥 Firebase 跨裝置即時資料庫連線成功！");
+          this.firebaseStatus = "CONNECTED";
+          this.firebaseError = null;
+        } else {
+          this.firebaseStatus = "DISCONNECTED";
+          this.firebaseError = "未連線至 Firebase 雲端伺服器 (請確認網路連線與 Firebase 設定)";
+        }
+        this.notifyListeners();
+      });
+
+      this.firebaseDb.ref('ylhcvs_game_state').on('value', (snapshot) => {
+        const val = snapshot.val();
+        if (val) {
+          this.mergeState(val);
+          localStorage.setItem('ylhcvs_escape_state', JSON.stringify(this.state));
+          this.notifyListeners();
+        }
+      }, (error) => {
+        console.error("❌ Firebase 讀取權限失敗：", error);
+        this.firebaseStatus = "ERROR";
+        this.firebaseError = error.message;
+        this.notifyListeners();
+      });
+    } catch (e) {
+      console.warn("Firebase 初始化異常：", e);
+      this.firebaseStatus = "ERROR";
+      this.firebaseError = e.message;
     }
   }
 
@@ -528,10 +553,12 @@ class GameEngine {
     
     if (this.firebaseDb) {
       this.firebaseDb.ref('ylhcvs_game_state').set(this.state).then(() => {
+        this.firebaseStatus = "CONNECTED";
         this.firebaseError = null;
       }).catch(err => {
-        console.error("❌ Firebase 寫入被拒（請開啟 Firebase 規則 .write: true）：", err);
-        this.firebaseError = "PERMISSION_DENIED: Firebase 資料庫規則限制寫入！";
+        console.error("❌ Firebase 寫入被拒：", err);
+        this.firebaseStatus = "ERROR";
+        this.firebaseError = "PERMISSION_DENIED: Firebase 寫入遭拒！";
         this.notifyListeners();
       });
     }

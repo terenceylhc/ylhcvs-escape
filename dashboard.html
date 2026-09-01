@@ -3,14 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🏆 員林家商圖書館密室逃脫 - 主控大螢幕即時排行榜</title>
+  <title>📺 員家圖書館密室逃脫 - 主控大螢幕即時排行榜</title>
   <link rel="stylesheet" href="style.css">
   <!-- Canvas Confetti 彩帶特效庫 -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-  <!-- QRCode.js -->
+  <!-- QRCode.js 免費線上庫 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <!-- SheetJS Excel 匯入匯出庫 -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Firebase 跨裝置即時通訊庫 -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -43,7 +41,11 @@
     </div>
     
     <!-- 右側教師控制區域 -->
-    <div style="display: flex; gap: 0.75rem; align-items: center;">
+    <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+      <div id="fb-status-badge" onclick="checkFbStatusAlert()" style="font-size:0.8rem; padding:0.3rem 0.6rem; border-radius:20px; background:rgba(255,255,255,0.1); cursor:pointer;">
+        ☁️ 載入連線狀態...
+      </div>
+
       <label style="font-size: 0.85rem; color: var(--text-muted);">獲勝名額：</label>
       <select id="select-winning-quota" class="input-field" style="width: auto; margin: 0; padding: 0.4rem 0.8rem; font-size: 0.9rem;">
         <option value="1">前 1 名</option>
@@ -61,105 +63,150 @@
         🧹 清空報到資料庫
       </button>
 
-      <button id="btn-open-qbank" class="btn btn-primary" style="width: auto; padding: 0.4rem 1rem; font-size: 0.9rem; background: #334155;">
+      <button id="btn-open-qbank" class="btn" style="width: auto; padding: 0.4rem 1rem; font-size: 0.9rem; background: #334155; color: #fff;">
         🔒 題庫管理 (後台)
       </button>
-
-      <div id="game-timer" style="font-size: 1.4rem; font-weight: 800; color: var(--gold); font-family: monospace; min-width: 70px; text-align: right;">00:00</div>
     </div>
   </nav>
 
-  <div class="dashboard-container" style="display: grid; grid-template-columns: 280px 1fr; gap: 1.5rem;">
+  <div class="dashboard-container">
     
-    <!-- 左側欄：學生掃碼進場與即時報到狀態 -->
-    <div>
-      <div class="card" style="text-align: center; padding: 1.25rem;">
-        <h3 style="font-size: 1.1rem; color: var(--gold); margin-bottom: 0.5rem;">📱 掃碼進入遊戲</h3>
-        <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.75rem;">請各組代表掃描 QR Code 輸入隊名：</p>
-        
-        <div id="dashboard-qrcode" style="background: white; padding: 0.75rem; display: inline-block; border-radius: 10px; margin-bottom: 0.5rem;"></div>
-        
-        <div style="font-size: 0.75rem; color: var(--text-muted); word-break: break-all;" id="student-url-display">
-          網址加載中...
+    <!-- 頂部即時數據統計卡 -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 0.85rem; color: var(--text-muted);">👥 已報到組數</span>
+          <span style="font-size: 1.5rem;">📱</span>
+        </div>
+        <div id="stat-registered-count" style="font-size: 2rem; font-weight: 800; color: var(--secondary); margin-top: 0.25rem;">
+          0
         </div>
       </div>
 
-      <!-- 進場狀態面板 -->
-      <div class="card" style="margin-top: 1rem;">
-        <h3 style="font-size: 1rem; color: var(--secondary); margin-bottom: 0.75rem;">👥 已報到組數 (<span id="stat-registered-count">0</span>)</h3>
-        <div id="registered-teams-list" style="max-height: 300px; overflow-y: auto; font-size: 0.85rem;">
-          <div style="color: var(--text-muted); text-align: center; padding: 1rem;">等待學生掃碼進場中...</div>
+      <div class="stat-card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 0.85rem; color: var(--text-muted);">🏆 獲勝名額</span>
+          <span style="font-size: 1.5rem;">👑</span>
+        </div>
+        <div id="stat-winning-quota" style="font-size: 2rem; font-weight: 800; color: var(--gold); margin-top: 0.25rem;">
+          前 3 名
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 0.85rem; color: var(--text-muted);">🎉 通關組數</span>
+          <span style="font-size: 1.5rem;">🔑</span>
+        </div>
+        <div id="stat-completed-teams" style="font-size: 2rem; font-weight: 800; color: var(--success); margin-top: 0.25rem;">
+          0
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 0.85rem; color: var(--text-muted);">⏱️ 全場總計時</span>
+          <span style="font-size: 1.5rem;">⏳</span>
+        </div>
+        <div id="stat-game-timer" style="font-size: 2rem; font-weight: 800; color: var(--gold); font-family: monospace; margin-top: 0.25rem;">
+          00:00
         </div>
       </div>
     </div>
 
-    <!-- 右側：大螢幕即時排行榜 -->
-    <div>
-      <!-- 頂部統計指標 -->
-      <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 1rem;">
-        <div class="stat-card" style="padding: 0.8rem;">
-          <div class="val" id="stat-total-teams">0</div>
-          <div class="lbl">已報到組數</div>
+    <!-- 下方主要區域：左側 QR Code 入口 + 右側即時排行榜 -->
+    <div style="display: grid; grid-template-columns: 280px 1fr; gap: 1.5rem;">
+      
+      <!-- 左側：學生入場 QR Code -->
+      <div class="card" style="text-align: center; height: fit-content;">
+        <h3 style="font-size: 1.1rem; color: var(--gold); margin-bottom: 0.25rem;">📱 學生掃碼入場</h3>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+          請使用手機相機掃描下方 QR Code 填寫隊名報到：
+        </p>
+
+        <div id="qrcode-box" style="background: white; padding: 0.75rem; border-radius: 12px; display: inline-block; margin-bottom: 1rem;"></div>
+
+        <div style="font-size: 0.75rem; color: var(--text-muted); word-break: break-all; margin-bottom: 1rem;">
+          學生端網址：<br>
+          <a id="student-url-display" href="#" target="_blank" style="color: var(--secondary); text-decoration: underline;">載入中...</a>
         </div>
-        <div class="stat-card" style="padding: 0.8rem;">
-          <div class="val" id="stat-completed-teams" style="color: var(--success);">0</div>
-          <div class="lbl">已通關組數</div>
-        </div>
-        <div class="stat-card" style="padding: 0.8rem;">
-          <div class="val" id="stat-winning-quota" style="color: var(--gold);">前 3 名</div>
-          <div class="lbl">錄取獲勝名額</div>
-        </div>
-        <div class="stat-card" style="padding: 0.8rem;">
-          <div class="val" id="stat-status-badge" style="color: var(--secondary); font-size: 1.4rem;">⏳ 等待報到中</div>
-          <div class="lbl">比賽狀態</div>
+
+        <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.75rem; text-align: left;">
+          <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-light); margin-bottom: 0.5rem;">
+            📋 已進入等待區隊伍：
+          </div>
+          <div id="registered-teams-list" style="max-height: 180px; overflow-y: auto; font-size: 0.82rem;">
+            <!-- 動態載入隊伍 -->
+          </div>
         </div>
       </div>
 
-      <!-- 即時排行榜表格 -->
-      <table class="leaderboard-table">
-        <thead>
-          <tr>
-            <th style="width: 70px;">名次</th>
-            <th style="width: 220px;">組別 / 隊伍名稱</th>
-            <th style="width: 200px;">當前關卡與地點</th>
-            <th>闖關進度 ( 循環移位路線 1 ~ 5 關 )</th>
-            <th style="width: 120px; text-align: right;">累積耗時</th>
-          </tr>
-        </thead>
-        <tbody id="leaderboard-body">
-          <!-- 即時動態渲染 -->
-        </tbody>
-      </table>
+      <!-- 右側：大螢幕即時排行榜 -->
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h2 style="font-size: 1.3rem; color: var(--gold);">
+            🏆 密室逃脫《失落的智慧金鑰》實時名次排行榜
+          </h2>
+          <span id="stat-status-badge" class="badge-tag badge-warning" style="font-size: 0.9rem;">
+            ⏳ 等待學生報到與開賽
+          </span>
+        </div>
+
+        <table class="leaderboard-table">
+          <thead>
+            <tr>
+              <th style="width: 80px;">名次</th>
+              <th>隊伍名稱 / 成員</th>
+              <th>當前挑戰地點</th>
+              <th>解謎總進度 (9 題)</th>
+              <th style="text-align: right;">比賽耗時</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboard-body">
+            <!-- 動態載入排行榜 -->
+          </tbody>
+        </table>
+      </div>
+
     </div>
 
   </div>
 
-  <!-- 📚 題庫管理彈窗 Modal (需輸入密碼 280282) -->
+  <!-- 後台題庫管理彈窗 Modal -->
   <div id="qbank-modal" class="modal-overlay">
     <div class="modal-content">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-        <h2 style="color: var(--gold); font-size: 1.3rem;">⚙️ 後台多題目題庫管理 (含 Excel 匯入/匯出)</h2>
-        <button id="btn-close-qbank" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">✕</button>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.75rem;">
+        <h2 style="font-size: 1.3rem; color: var(--gold);">🔒 題庫線上管理後台 (共 47 題大題庫)</h2>
+        <div>
+          <button id="btn-reset-qbank-default" class="btn" style="background: #e11d48; color: white; padding: 0.4rem 0.8rem; font-size: 0.85rem; margin-right: 0.5rem;">
+            🔄 強制載入最新預設題庫
+          </button>
+          <button id="btn-close-qbank" class="btn" style="background: #475569; color: white; padding: 0.4rem 0.8rem; font-size: 0.85rem;">
+            ✖ 關閉
+          </button>
+        </div>
       </div>
 
-      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
-        管理員權限驗證通過。每道關卡類別 (1~5 關) 中可包含多道題目，每組報到時會隨機抽取 1 題：
-      </p>
-
-      <div style="display: flex; gap: 1rem; margin-bottom: 1.25rem;">
-        <button id="btn-export-excel" class="btn btn-primary" style="width: auto;">📥 匯出完整 Excel 題庫 (.xlsx)</button>
-        <label class="btn btn-success" style="width: auto; cursor: pointer;">
-          📤 匯入 Excel 題庫 (.xlsx / .csv)
-          <input type="file" id="input-excel-file" accept=".xlsx, .xls, .csv" style="display: none;">
-        </label>
+      <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+        <label style="font-size: 0.9rem; font-weight: 600;">篩選關卡類別：</label>
+        <select id="filter-cat-select" class="input-field" style="width: auto; padding: 0.4rem;">
+          <option value="all">全部關卡 (1~5)</option>
+          <option value="1">關卡一：館舍尋蹤 (10題)</option>
+          <option value="2">關卡二：OPAC檢索 (10題)</option>
+          <option value="3">關卡三：二樓書庫 (12題)</option>
+          <option value="5">關卡五：流通櫃台 (10題)</option>
+        </select>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">編輯完成後請點擊右下角【💾 儲存並發布題庫】即可同步生效！</span>
       </div>
 
-      <div id="qbank-editor-container">
-        <!-- 題庫動態編輯表格 -->
+      <div id="qbank-list-container" style="max-height: 55vh; overflow-y: auto; padding-right: 0.5rem;">
+        <!-- 動態載入題庫編輯表單 -->
       </div>
 
-      <div style="margin-top: 1.25rem; text-align: right;">
-        <button id="btn-save-qbank" class="btn btn-primary" style="width: auto; padding: 0.6rem 1.5rem;">💾 儲存題庫修改</button>
+      <div style="margin-top: 1.25rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem; text-align: right;">
+        <button id="btn-save-qbank" class="btn btn-success" style="padding: 0.75rem 1.5rem; font-size: 1rem;">
+          💾 儲存並發布題庫
+        </button>
       </div>
     </div>
   </div>
@@ -177,16 +224,18 @@
 
     function renderQrCode() {
       const studentUrl = getStudentUrl();
+      document.getElementById('student-url-display').href = studentUrl;
       document.getElementById('student-url-display').textContent = studentUrl;
-      const container = document.getElementById('dashboard-qrcode');
+
+      const container = document.getElementById('qrcode-box');
       container.innerHTML = '';
       new QRCode(container, {
         text: studentUrl,
-        width: 160,
-        height: 160,
-        colorDark: "#000000",
-        colorLight: "#ffffff",
-        correctLevel: QRCode.CorrectLevel.H
+        width: 170,
+        height: 170,
+        colorDark : "#000000",
+        colorLight : "#ffffff",
+        correctLevel : QRCode.CorrectLevel.H
       });
     }
 
@@ -198,8 +247,39 @@
       return `${mins}:${secs}`;
     }
 
+    function updateFirebaseStatusBadge() {
+      const badge = document.getElementById('fb-status-badge');
+      const status = window.gameEngine.firebaseStatus;
+      const error = window.gameEngine.firebaseError;
+
+      if (status === "CONNECTED") {
+        badge.style.background = "rgba(16, 185, 129, 0.2)";
+        badge.style.color = "#34d399";
+        badge.style.border = "1px solid #10b981";
+        badge.innerHTML = "🟢 跨裝置 Firebase 雲端連線正常";
+      } else {
+        badge.style.background = "rgba(239, 68, 68, 0.2)";
+        badge.style.color = "#f87171";
+        badge.style.border = "1px solid #ef4444";
+        badge.innerHTML = "🔴 跨裝置未連線 (點此查看排查教學)";
+      }
+    }
+
+    function checkFbStatusAlert() {
+      const status = window.gameEngine.firebaseStatus;
+      const error = window.gameEngine.firebaseError;
+
+      if (status === "CONNECTED") {
+        alert("✅ 跨裝置 Firebase 雲端連線非常健康！全校手機與大螢幕皆能即時同步！");
+      } else {
+        alert(`🔴【跨裝置連線未開啟排查指南】\n目前原因：${error || '未連線'}\n\n請依序檢查以下 3 個步驟：\n1. 開啟 Firebase 控制台 (https://console.firebase.google.com/)\n2. 點擊左側 Realtime Database ➔ 務必點擊【建立資料庫】藍色按鈕！\n3. 於 Rules 分頁將規則設為 ".read": true, ".write": true 並點擊「發布」！\n4. 將最新程式碼 Push 發布至 GitHub Pages！`);
+      }
+    }
+
     function renderDashboard(state) {
       if (!state || !state.teams) return;
+
+      updateFirebaseStatusBadge();
 
       const teams = Object.values(state.teams);
       document.getElementById('stat-total-teams').textContent = teams.length;
@@ -265,22 +345,17 @@
         }
 
         const stepIdx = typeof team.stepIndex === 'number' ? team.stepIndex : 0;
-        const progressPct = team.completed ? 100 : Math.min(100, Math.round((stepIdx / 5) * 100));
+        const progressPct = team.completed ? 100 : Math.min(100, Math.round((stepIdx / 9) * 100));
 
-        const seq = (team.levelSequence && team.levelSequence.length) ? team.levelSequence : [1, 2, 3, 4, 5];
         let locationText = "⏳ 等待開賽";
         if (state.status === 'playing') {
-          if (!team.completed && stepIdx < seq.length) {
-            const currentCat = seq[stepIdx];
-            let qObj = null;
-            if (team.assignedQuestions && team.assignedQuestions[currentCat]) {
-              qObj = team.assignedQuestions[currentCat];
-            } else {
-              const pool = state.questions || [];
-              qObj = pool.find(q => (q.categoryLevel || q.id) == currentCat);
+          if (!team.completed) {
+            const qInfo = window.gameEngine.getCurrentQuestionForTeam(team.id);
+            if (qInfo && qInfo.questionObj) {
+              const qObj = qInfo.questionObj;
+              const locName = qObj.location ? qObj.location.split(' ')[0] : '圖書館';
+              locationText = `📍 ${locName} (第${qInfo.stepNumber}/9題)`;
             }
-            const locName = qObj ? (qObj.location ? qObj.location.split(' ')[0] : '圖書館') : '圖書館';
-            locationText = `📍 ${locName} (第${stepIdx + 1}關)`;
           } else if (team.completed) {
             locationText = "🏆 終點通關";
           }
@@ -297,7 +372,7 @@
           <td style="font-size: 0.85rem; font-weight: 600; color: var(--secondary);">${locationText}</td>
           <td>
             <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted); margin-bottom:0.25rem;">
-              <span>已解開 ${team.completed ? 5 : stepIdx} / 5 关</span>
+              <span>解謎進度: ${team.completed ? 9 : stepIdx} / 9 題</span>
               <span>${progressPct}%</span>
             </div>
             <div class="progress-bar-bg">
@@ -310,6 +385,20 @@
         `;
         tbody.appendChild(tr);
       });
+    }
+
+    function startTimerLoop() {
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        const state = window.gameEngine.state;
+        if (state && state.status === 'playing' && state.startTime) {
+          const elapsed = Date.now() - state.startTime;
+          document.getElementById('stat-game-timer').textContent = formatTime(elapsed);
+          renderDashboard(state);
+        } else {
+          document.getElementById('stat-game-timer').textContent = "00:00";
+        }
+      }, 1000);
     }
 
     document.getElementById('select-winning-quota').addEventListener('change', (e) => {
@@ -344,124 +433,91 @@
       modal.classList.remove('active');
     });
 
+    document.getElementById('btn-reset-qbank-default').addEventListener('click', () => {
+      if (confirm('⚠️ 確定要【強制載入最新預設題庫】嗎？這將載入最新的 47 題校正題庫並覆蓋快取。')) {
+        window.gameEngine.updateQuestions(DEFAULT_QUESTIONS_POOL);
+        renderQBankEditor(window.gameEngine.state.questions);
+        alert('🔄 已成功強刷載入最新預設題庫！');
+      }
+    });
+
     function renderQBankEditor(questions) {
-      const container = document.getElementById('qbank-editor-container');
-      container.innerHTML = `
-        <table class="leaderboard-table" style="font-size: 0.82rem;">
-          <thead>
-            <tr>
-              <th style="width:70px;">題庫類別</th>
-              <th style="width:130px;">關卡標題</th>
-              <th style="width:130px;">館舍地點</th>
-              <th style="width:70px;">答案密碼</th>
-              <th>學生端提示訊息 (不含密碼)</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${questions.map((q, idx) => `
-              <tr class="leaderboard-row">
-                <td style="font-weight:700; color:var(--gold);">第 ${q.categoryLevel || q.id} 關類別</td>
-                <td><input type="text" class="input-field q-title" data-idx="${idx}" value="${q.title || ''}" style="margin:0; padding:0.4rem;"></td>
-                <td><input type="text" class="input-field q-location" data-idx="${idx}" value="${q.location || ''}" style="margin:0; padding:0.4rem;"></td>
-                <td><input type="text" class="input-field q-answer" data-idx="${idx}" value="${q.answer || ''}" style="margin:0; padding:0.4rem; text-align:center;"></td>
-                <td><input type="text" class="input-field q-hint" data-idx="${idx}" value="${q.hint || ''}" style="margin:0; padding:0.4rem;"></td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      `;
+      const container = document.getElementById('qbank-list-container');
+      const filterCat = document.getElementById('filter-cat-select').value;
+      container.innerHTML = '';
+
+      let filtered = questions;
+      if (filterCat !== 'all') {
+        filtered = questions.filter(q => String(q.categoryLevel || 1) === filterCat);
+      }
+
+      filtered.forEach((q, idx) => {
+        const itemDiv = document.createElement('div');
+        itemDiv.style.background = "rgba(255,255,255,0.03)";
+        itemDiv.style.border = "1px solid rgba(255,255,255,0.08)";
+        itemDiv.style.borderRadius = "8px";
+        itemDiv.style.padding = "1rem";
+        itemDiv.style.marginBottom = "0.75rem";
+
+        const answersStr = Array.isArray(q.answer) ? q.answer.join(', ') : q.answer;
+
+        itemDiv.innerHTML = `
+          <div style="display:flex; justify-content:space-between; font-weight:700; color:var(--gold); margin-bottom:0.5rem;">
+            <span>ID: ${q.id} (關卡 ${q.categoryLevel})</span>
+            <span>地點: ${q.location}</span>
+          </div>
+          <div style="margin-bottom:0.5rem;">
+            <label style="font-size:0.8rem; color:var(--text-muted);">題目標題 / 描述：</label>
+            <input type="text" class="input-field q-title" data-id="${q.id}" value="${q.title || ''}" style="margin-bottom:0.4rem;">
+            <textarea class="input-field q-text" data-id="${q.id}" rows="2" style="font-size:0.88rem;">${q.question || ''}</textarea>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+            <div>
+              <label style="font-size:0.8rem; color:var(--text-muted);">正確解答 (多解以逗號隔開)：</label>
+              <input type="text" class="input-field q-ans" data-id="${q.id}" value="${answersStr}">
+            </div>
+            <div>
+              <label style="font-size:0.8rem; color:var(--text-muted);">求救提示 (答錯2次後解鎖)：</label>
+              <input type="text" class="input-field q-hint" data-id="${q.id}" value="${q.hint || ''}">
+            </div>
+          </div>
+        `;
+        container.appendChild(itemDiv);
+      });
     }
 
+    document.getElementById('filter-cat-select').addEventListener('change', () => {
+      renderQBankEditor(window.gameEngine.state.questions || []);
+    });
+
     document.getElementById('btn-save-qbank').addEventListener('click', () => {
-      const titles = document.querySelectorAll('.q-title');
-      const locations = document.querySelectorAll('.q-location');
-      const answers = document.querySelectorAll('.q-answer');
-      const hints = document.querySelectorAll('.q-hint');
+      const qList = JSON.parse(JSON.stringify(window.gameEngine.state.questions || []));
+      
+      qList.forEach(q => {
+        const titleEl = document.querySelector(`.q-title[data-id="${q.id}"]`);
+        const textEl = document.querySelector(`.q-text[data-id="${q.id}"]`);
+        const ansEl = document.querySelector(`.q-ans[data-id="${q.id}"]`);
+        const hintEl = document.querySelector(`.q-hint[data-id="${q.id}"]`);
 
-      const currentPool = window.gameEngine.state.questions || [];
-      const updated = [];
-
-      titles.forEach((el, idx) => {
-        const orig = currentPool[idx] || {};
-        updated.push({
-          id: orig.id || `q_${orig.categoryLevel || 1}_${idx+1}`,
-          categoryLevel: orig.categoryLevel || (idx % 5) + 1,
-          title: el.value,
-          location: locations[idx].value,
-          answer: answers[idx].value,
-          hint: hints[idx].value,
-          question: orig.question || `請輸入${locations[idx].value}算出的解密密碼：`
-        });
+        if (titleEl) q.title = titleEl.value;
+        if (textEl) q.question = textEl.value;
+        if (hintEl) q.hint = hintEl.value;
+        if (ansEl) {
+          const val = ansEl.value;
+          q.answer = val.includes(',') ? val.split(',').map(s => s.trim()) : val.trim();
+        }
       });
 
-      window.gameEngine.updateQuestions(updated);
-      alert('💾 題庫修改已儲存！');
+      window.gameEngine.updateQuestions(qList);
+      alert('💾 題庫修改成功！已儲存寫入全域狀態。');
       modal.classList.remove('active');
     });
 
-    document.getElementById('btn-export-excel').addEventListener('click', () => {
-      const questions = window.gameEngine.state.questions || [];
-      const exportData = questions.map(q => ({
-        "題目ID": q.id,
-        "關卡類別(1-5)": q.categoryLevel,
-        "關卡名稱": q.title,
-        "館舍地點": q.location,
-        "答案密碼": q.answer,
-        "提示訊息(不含解答)": q.hint,
-        "題目題目描述": q.question
-      }));
-
-      const worksheet = XLSX.utils.json_to_sheet(exportData);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "密室逃脫題庫池");
-      XLSX.writeFile(workbook, "員林家商圖書館密室逃脫多題目題庫.xlsx");
-    });
-
-    document.getElementById('input-excel-file').addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        const data = new Uint8Array(evt.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-        const json = XLSX.utils.sheet_to_json(firstSheet);
-
-        if (json.length > 0) {
-          const importedQuestions = json.map((row, idx) => ({
-            id: row["題目ID"] || `imported_${idx+1}`,
-            categoryLevel: parseInt(row["關卡類別(1-5)"]) || ((idx % 5) + 1),
-            title: row["關卡名稱"] || `關卡 ${idx + 1}`,
-            location: row["館舍地點"] || "圖書館",
-            answer: String(row["答案密碼"] || "0000"),
-            hint: row["提示訊息(不含解答)"] || "",
-            question: row["題目題目描述"] || `請輸入${row["館舍地點"] || "圖書館"}算出的解密密碼：`
-          }));
-
-          window.gameEngine.updateQuestions(importedQuestions);
-          renderQBankEditor(importedQuestions);
-          alert(`✅ 成功匯入 ${importedQuestions.length} 道多題目題庫！`);
-        }
-      };
-      reader.readAsArrayBuffer(file);
-    });
-
-    function startTimerLoop() {
-      if (timerInterval) clearInterval(timerInterval);
-      timerInterval = setInterval(() => {
-        const state = window.gameEngine.state;
-        if (state && state.status === 'playing' && state.startTime) {
-          document.getElementById('game-timer').textContent = formatTime(Date.now() - state.startTime);
-          renderDashboard(state);
-        }
-      }, 1000);
-    }
-
-    renderQrCode();
     window.gameEngine.subscribe((state) => {
       renderDashboard(state);
     });
+
+    renderQrCode();
     startTimerLoop();
   </script>
 </body>
