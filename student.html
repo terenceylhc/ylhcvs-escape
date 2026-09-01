@@ -2,91 +2,110 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.5, maximum-scale=1.0, user-scalable=no">
-  <title>🔐 員家圖書館密室逃脫 - 學生闖關端</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📱 員家圖書館密室逃脫 - 學生闖關端</title>
   <link rel="stylesheet" href="style.css">
-  <!-- Canvas Confetti 彩帶特效庫 -->
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <!-- Firebase 跨裝置即時通訊庫 -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="firebase-config.js"></script>
 </head>
 <body>
+  <!-- 頂部一體化導航條 -->
   <nav class="navbar">
     <div class="brand">
-      <span>🏫 員家圖書館密室逃脫</span>
+      <span>🏫 員家密室逃脫</span>
+      <span style="opacity: 0.5;">|</span>
+      <span>學生闖關端</span>
     </div>
     <div id="team-header-info" style="font-size: 0.85rem; font-weight: 700; color: var(--gold);">
       未登錄隊伍
     </div>
   </nav>
 
-  <div class="student-container">
+  <div class="app-container">
     
-    <!-- 階段 1：輸入隊名 -->
+    <!-- 階段 1：填寫隊名報到卡 -->
     <div id="step-register" class="card">
-      <h2 style="font-size: 1.3rem; margin-bottom: 0.5rem; color: var(--secondary); text-align: center;">
-        👥 輸入隊名開始挑戰
-      </h2>
-      <p style="font-size: 0.85rem; color: var(--text-muted); text-align: center; margin-bottom: 1.25rem;">
-        請每組（2～4 人）由一名代表輸入隊名，系統將自動為您開啟 4 大關卡 (共 9 題) 闖關之旅：
-      </p>
+      <div style="text-align: center; margin-bottom: 1.5rem;">
+        <h2 style="font-size: 1.4rem; color: var(--gold); margin-bottom: 0.5rem;">
+          👥 輸入隊名開始挑戰
+        </h2>
+        <p style="font-size: 0.88rem; color: var(--text-muted);">
+          請每組（2~4 人）由一名代表輸入隊名，系統將自動為您開啟 4 大關卡 (共 9 題) 闖關之旅：
+        </p>
+      </div>
 
-      <label style="font-size: 0.9rem; font-weight: 600;">隊伍名稱 (隊名)：</label>
-      <input type="text" id="input-team-name" class="input-field" placeholder="例如：員家勇士隊 / 閱讀學霸隊">
+      <div style="margin-bottom: 1rem;">
+        <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 0.4rem;">
+          隊伍名稱 (隊名)：
+        </label>
+        <input type="text" id="input-team-name" class="input-field" placeholder="例如：員家霸主隊 (可自訂)" maxlength="15">
+      </div>
 
-      <label style="font-size: 0.9rem; font-weight: 600;">組員姓名 (以逗號分隔，選填)：</label>
-      <input type="text" id="input-members" class="input-field" placeholder="例如：王小明, 張小華, 李小英">
+      <div style="margin-bottom: 1.5rem;">
+        <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 0.4rem;">
+          組員姓名 (以逗號分隔，選填)：
+        </label>
+        <input type="text" id="input-members" class="input-field" placeholder="例如：王小明, 李小美, 張大華">
+      </div>
 
-      <button id="btn-auto-register" class="btn btn-primary" style="font-size: 1.1rem; padding: 1rem; margin-top: 0.5rem; width: 100%;">
+      <button id="btn-auto-register" class="btn btn-primary" style="font-size: 1.1rem; padding: 0.9rem;">
         🚀 進入密室挑戰
       </button>
     </div>
 
-    <!-- 階段 2：等待開賽等待區 (Waiting Lounge) -->
-    <div id="step-waiting" class="card" style="display: none; text-align: center; padding: 2.5rem 1.5rem;">
-      <div style="font-size: 3.5rem; margin-bottom: 1rem;" class="animate-pulse">⏳</div>
-      <h2 style="font-size: 1.4rem; color: var(--gold); margin-bottom: 0.5rem;" id="waiting-team-title">
-        【第 1 組】報到成功！
+    <!-- 階段 2：等待老師開賽卡 -->
+    <div id="step-waiting" class="card" style="display: none; text-align: center; padding: 2rem 1rem;">
+      <div style="font-size: 3.5rem; margin-bottom: 1rem; animation: pulse 2s infinite;">⏳</div>
+      <h2 id="waiting-team-title" style="font-size: 1.3rem; color: var(--gold); margin-bottom: 0.5rem;">
+        報到成功！
       </h2>
-      <p style="font-size: 0.95rem; color: var(--text-light); margin-bottom: 1.5rem;">
-        已進入準備等待區！<br>
-        <span style="color: var(--secondary); font-weight: 700;">請觀看大螢幕，等待老師按下【開始遊戲】……</span>
+      <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 1.5rem;">
+        您已成功登錄至密室逃脫大螢幕系統。<br>
+        請觀看前方投影幕，等待圖書館老師按下「🚀 開始遊戲」！
       </p>
 
-      <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 10px; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">
-        💡 提示：比賽將由關卡一（館舍尋蹤 3 題）➔ 關卡二（OPAC 檢索 3 題）➔ 關卡三（二樓書庫 2 題）➔ 關卡五（流通櫃台 1 題）順序進行，祝您奪得第一名！
+      <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 10px; font-size: 0.85rem; color: var(--secondary);">
+        💡 小提醒：老師開啟遊戲後，您的手機將自動跳轉出第一關題目，無需重新整理網頁！
       </div>
 
-      <button id="btn-re-register" class="btn" style="background: rgba(255,255,255,0.1); color: var(--text-muted); font-size: 0.85rem; padding: 0.5rem 1rem;">
-        ✏️ 修改隊名 / 重新報到
+      <button id="btn-re-register" class="btn" style="margin-top: 1.5rem; background: transparent; border: 1px solid rgba(255,255,255,0.2); color: var(--text-muted); font-size: 0.8rem; padding: 0.4rem 0.8rem;">
+        🔄 隊名填錯？重新報到
       </button>
     </div>
 
-    <!-- 階段 3：闖關解謎卡 -->
+    <!-- 階段 3：闖關解謎主畫面 -->
     <div id="step-game" class="card" style="display: none;">
-      
-      <!-- 頂部進度條與地點提示 -->
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
-        <span id="level-badge" class="badge-tag badge-warning" style="font-size: 0.9rem;">關卡 1 (第 1/9 題)</span>
-        <span id="level-location" style="font-size: 0.85rem; color: var(--secondary); font-weight: 700;">📍 地點：載入中...</span>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <span id="level-badge" class="badge-tag badge-gold">
+          關卡一 館舍尋蹤 (1/3題 | 全場 1/9 題)
+        </span>
+        <span id="level-location" style="font-size: 0.85rem; color: var(--secondary); font-weight: 600;">
+          📍 1 樓 自主學習空間
+        </span>
       </div>
 
-      <h2 id="level-title" style="font-size: 1.2rem; margin-bottom: 0.75rem; color: var(--text-light);">
-        關卡載入中...
-      </h2>
+      <h3 id="level-title" style="font-size: 1.15rem; color: #fff; margin-bottom: 0.75rem;">
+        題目載入中...
+      </h3>
 
-      <!-- 提示訊息區（答錯 2 次自動解鎖） -->
-      <div id="level-hint-box" style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 10px; font-size: 0.88rem; color: #cbd5e1; margin-bottom: 1.25rem; border-left: 4px solid var(--primary); transition: all 0.3s ease;">
-        提示訊息加載中……
+      <div style="background: rgba(15, 23, 42, 0.6); padding: 1rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 1rem;">
+        <p id="level-question-lbl" style="font-size: 0.95rem; line-height: 1.6; color: var(--text-light); whitespace: pre-line;">
+          題目內文...
+        </p>
+      </div>
+
+      <!-- 提示區 (答錯 2 次自動解鎖) -->
+      <div id="level-hint-box" style="background: rgba(255,255,255,0.04); border-left: 4px solid var(--primary); padding: 0.75rem 1rem; border-radius: 6px; font-size: 0.85rem; margin-bottom: 1.25rem;">
+        <!-- 動態提示內容 -->
       </div>
 
       <div style="margin-bottom: 1rem;">
-        <label id="level-question-lbl" style="font-size: 0.9rem; font-weight: 600; color: var(--gold);">
-          請輸入解密密碼：
+        <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 0.4rem;">
+          請輸入關卡解謎密碼 / 暗號：
         </label>
-        <input type="text" id="input-answer" class="input-field" placeholder="請輸入密碼數字或解答" style="font-size: 1.25rem; letter-spacing: 2px; text-align: center;">
+        <input type="text" id="input-answer" class="input-field" placeholder="請在此輸入答案..." autocomplete="off">
       </div>
 
       <div id="error-msg" style="color: var(--danger); font-size: 0.85rem; text-align: center; margin-bottom: 0.75rem; display: none;"></div>
@@ -128,9 +147,7 @@
     function renderStudentUI(state) {
       const regBtn = document.getElementById('btn-auto-register');
 
-      // 檢查目前的 currentTeamId 是否有效且依然存在於全域 state.teams
       if (currentTeamId && state.teams && !state.teams[currentTeamId]) {
-        // 若老師按了「清空報到資料庫」，則自動重置 localCurrentTeam
         currentTeamId = null;
         localStorage.removeItem('ylhcvs_current_team_id');
       }
@@ -142,8 +159,10 @@
         document.getElementById('step-complete').style.display = 'none';
         document.getElementById('team-header-info').textContent = "未登錄隊伍";
         
-        regBtn.disabled = false;
-        regBtn.innerHTML = "🚀 進入密室挑戰";
+        if (regBtn) {
+          regBtn.disabled = false;
+          regBtn.innerHTML = "🚀 進入密室挑戰";
+        }
         return;
       }
 
@@ -198,7 +217,6 @@
       document.getElementById('level-title').textContent = qObj.title || '圖書館挑戰關卡';
       document.getElementById('level-question-lbl').textContent = qObj.question || '請輸入解密密碼：';
 
-      // 判斷答錯次數是否 >= 2：解鎖求救提示
       const hintBox = document.getElementById('level-hint-box');
       if (qInfo.failedAttempts >= 2) {
         hintBox.style.borderLeft = '4px solid var(--success)';
@@ -227,15 +245,21 @@
       }
       const members = membersInput.value.trim();
 
-      // 按鈕連點防護 Lock
       regBtn.disabled = true;
       regBtn.innerHTML = "⏳ 正在進入密室等待區...";
 
-      const newTeam = window.gameEngine.autoRegisterTeam(teamName, members);
-      currentTeamId = newTeam.id;
-      localStorage.setItem('ylhcvs_current_team_id', currentTeamId);
-      
-      renderStudentUI(window.gameEngine.state);
+      try {
+        const newTeam = window.gameEngine.autoRegisterTeam(teamName, members);
+        currentTeamId = newTeam.id;
+        localStorage.setItem('ylhcvs_current_team_id', currentTeamId);
+        
+        renderStudentUI(window.gameEngine.state);
+      } catch (err) {
+        console.error("報到發生異常：", err);
+        alert("報到異常：" + err.message);
+        regBtn.disabled = false;
+        regBtn.innerHTML = "🚀 進入密室挑戰";
+      }
     });
 
     document.getElementById('btn-re-register').addEventListener('click', () => {
@@ -245,21 +269,31 @@
     });
 
     document.getElementById('btn-submit-answer').addEventListener('click', () => {
-      const inputVal = document.getElementById('input-answer').value;
-      const team = window.gameEngine.state.teams[currentTeamId];
-      if (!team) return;
+      if (!currentTeamId) return;
+      const ansInput = document.getElementById('input-answer');
+      const errorMsg = document.getElementById('error-msg');
+      const answerVal = ansInput.value.trim();
 
-      const result = window.gameEngine.submitAnswer(currentTeamId, inputVal);
-      if (result.success) {
-        if (result.isCompleted) {
-          confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
-        }
+      if (!answerVal) {
+        errorMsg.textContent = "請輸入解答！";
+        errorMsg.style.display = 'block';
+        return;
+      }
+
+      const res = window.gameEngine.submitAnswer(currentTeamId, answerVal);
+      if (res.success) {
+        errorMsg.style.display = 'none';
         renderStudentUI(window.gameEngine.state);
       } else {
-        const err = document.getElementById('error-msg');
-        err.textContent = result.message;
-        err.style.display = 'block';
+        errorMsg.textContent = res.message;
+        errorMsg.style.display = 'block';
         renderStudentUI(window.gameEngine.state);
+      }
+    });
+
+    document.getElementById('input-answer').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        document.getElementById('btn-submit-answer').click();
       }
     });
 

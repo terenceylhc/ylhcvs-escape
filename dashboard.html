@@ -223,20 +223,29 @@
     }
 
     function renderQrCode() {
-      const studentUrl = getStudentUrl();
-      document.getElementById('student-url-display').href = studentUrl;
-      document.getElementById('student-url-display').textContent = studentUrl;
+      try {
+        const studentUrl = getStudentUrl();
+        const displayEl = document.getElementById('student-url-display');
+        if (displayEl) {
+          displayEl.href = studentUrl;
+          displayEl.textContent = studentUrl;
+        }
 
-      const container = document.getElementById('qrcode-box');
-      container.innerHTML = '';
-      new QRCode(container, {
-        text: studentUrl,
-        width: 170,
-        height: 170,
-        colorDark : "#000000",
-        colorLight : "#ffffff",
-        correctLevel : QRCode.CorrectLevel.H
-      });
+        const container = document.getElementById('qrcode-box');
+        if (container) {
+          container.innerHTML = '';
+          new QRCode(container, {
+            text: studentUrl,
+            width: 170,
+            height: 170,
+            colorDark : "#000000",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.H
+          });
+        }
+      } catch (err) {
+        console.warn("QR Code 繪製提示：", err);
+      }
     }
 
     function formatTime(ms) {
@@ -249,6 +258,7 @@
 
     function updateFirebaseStatusBadge() {
       const badge = document.getElementById('fb-status-badge');
+      if (!badge) return;
       const status = window.gameEngine.firebaseStatus;
       const error = window.gameEngine.firebaseError;
 
@@ -282,35 +292,46 @@
       updateFirebaseStatusBadge();
 
       const teams = Object.values(state.teams);
-      document.getElementById('stat-total-teams').textContent = teams.length;
-      document.getElementById('stat-registered-count').textContent = teams.length;
-      document.getElementById('stat-winning-quota').textContent = `前 ${state.winningQuota || 3} 名`;
-      document.getElementById('select-winning-quota').value = state.winningQuota || 3;
+      
+      const regCountEl = document.getElementById('stat-registered-count');
+      if (regCountEl) regCountEl.textContent = teams.length;
+
+      const winQuotaEl = document.getElementById('stat-winning-quota');
+      if (winQuotaEl) winQuotaEl.textContent = `前 ${state.winningQuota || 3} 名`;
+
+      const selectQuotaEl = document.getElementById('select-winning-quota');
+      if (selectQuotaEl) selectQuotaEl.value = state.winningQuota || 3;
 
       const badgeText = document.getElementById('stat-status-badge');
-      if (state.status === 'playing') {
-        badgeText.textContent = '🚀 比賽進行中';
-        badgeText.style.color = 'var(--success)';
-      } else {
-        badgeText.textContent = '⏳ 等待學生報到與開賽';
-        badgeText.style.color = 'var(--secondary)';
+      if (badgeText) {
+        if (state.status === 'playing') {
+          badgeText.textContent = '🚀 比賽進行中';
+          badgeText.style.color = 'var(--success)';
+        } else {
+          badgeText.textContent = '⏳ 等待學生報到與開賽';
+          badgeText.style.color = 'var(--secondary)';
+        }
       }
 
       const regList = document.getElementById('registered-teams-list');
-      if (teams.length === 0) {
-        regList.innerHTML = `<div style="color: var(--text-muted); text-align: center; padding: 1rem;">等待學生掃碼進場中...</div>`;
-      } else {
-        regList.innerHTML = teams.map(t => `
-          <div style="padding: 0.4rem 0.6rem; background: rgba(255,255,255,0.05); margin-bottom: 0.4rem; border-radius: 6px; display: flex; justify-content: space-between;">
-            <span style="font-weight: 700; color: var(--gold);">【第 ${t.groupNum || '?'} 組】</span>
-            <span>${t.name || '未命名'}</span>
-          </div>
-        `).join('');
+      if (regList) {
+        if (teams.length === 0) {
+          regList.innerHTML = `<div style="color: var(--text-muted); text-align: center; padding: 1rem;">等待學生掃碼進場中...</div>`;
+        } else {
+          regList.innerHTML = teams.map(t => `
+            <div style="padding: 0.4rem 0.6rem; background: rgba(255,255,255,0.05); margin-bottom: 0.4rem; border-radius: 6px; display: flex; justify-content: space-between;">
+              <span style="font-weight: 700; color: var(--gold);">【第 ${t.groupNum || '?'} 組】</span>
+              <span>${t.name || '未命名'}</span>
+            </div>
+          `).join('');
+        }
       }
 
       const sortedTeams = window.gameEngine.getSortedLeaderboard();
       const completedCount = sortedTeams.filter(t => t.completed).length;
-      document.getElementById('stat-completed-teams').textContent = completedCount;
+      
+      const compCountEl = document.getElementById('stat-completed-teams');
+      if (compCountEl) compCountEl.textContent = completedCount;
 
       if (completedCount >= (state.winningQuota || 3) && !hasFiredConfetti && state.status === 'playing') {
         hasFiredConfetti = true;
@@ -318,6 +339,7 @@
       }
 
       const tbody = document.getElementById('leaderboard-body');
+      if (!tbody) return;
       tbody.innerHTML = '';
 
       if (sortedTeams.length === 0) {
