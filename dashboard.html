@@ -97,6 +97,19 @@
       color: var(--gold);
       text-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
     }
+    .qrcode-box {
+      background: #ffffff;
+      padding: 0.75rem;
+      border-radius: 12px;
+      display: inline-block;
+      box-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
+      margin-bottom: 0.75rem;
+    }
+    .qrcode-box img {
+      width: 180px;
+      height: 180px;
+      display: block;
+    }
   </style>
 </head>
 <body>
@@ -142,8 +155,32 @@
       </table>
     </div>
 
-    <!-- 側邊欄：導師控制台與實時活動紀錄 -->
+    <!-- 側邊欄：QR Code 掃描區與導師控制台 -->
     <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+      
+      <!-- 📱 學生報到 QR Code 卡片 -->
+      <div class="db-card" style="text-align: center;">
+        <h3 style="font-size: 1.15rem; color: var(--gold); margin-top: 0; margin-bottom: 0.75rem;">
+          📱 學生手機掃描報到 QR Code
+        </h3>
+        <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+          請同學打開相機掃描下方條碼或輸入網址即可進入試煉：
+        </p>
+
+        <div class="qrcode-box">
+          <img id="db-qrcode-img" src="" alt="學生報到 QR Code">
+        </div>
+
+        <div id="db-student-url" style="font-size: 0.78rem; color: var(--secondary); font-family: monospace; word-break: break-all; background: rgba(0,0,0,0.3); padding: 0.4rem; border-radius: 6px; margin-bottom: 0.5rem;">
+          載入網址中...
+        </div>
+
+        <button id="btn-copy-url" class="btn" style="font-size: 0.8rem; padding: 0.4rem 0.8rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);">
+          📋 複製報到網址
+        </button>
+      </div>
+
+      <!-- 🔮 導師控制台 -->
       <div class="db-card">
         <h3 style="font-size: 1.1rem; color: var(--gold); margin-top: 0; margin-bottom: 1rem;">
           🔮 試煉導師控制台
@@ -166,21 +203,48 @@
         </div>
       </div>
 
-      <!-- 活動日誌 -->
+      <!-- 📜 試煉即時動態日誌 -->
       <div class="db-card" style="flex: 1;">
         <h3 style="font-size: 1.1rem; color: var(--gold); margin-top: 0; margin-bottom: 0.75rem;">
           📜 試煉即時動態
         </h3>
-        <div id="activity-log" style="font-size: 0.85rem; line-height: 1.6; color: var(--text-muted); max-height: 350px; overflow-y: auto;">
+        <div id="activity-log" style="font-size: 0.85rem; line-height: 1.6; color: var(--text-muted); max-height: 250px; overflow-y: auto;">
           <div>[系統] 魔法學院試煉看板已就緒...</div>
         </div>
       </div>
+
     </div>
   </div>
 
   <script src="app.js"></script>
   <script>
     let timerInterval = null;
+
+    // 自動生成學生端 URL 與 QR Code
+    function initQRCode() {
+      let currentUrl = window.location.href;
+      let studentUrl = '';
+
+      if (currentUrl.includes('dashboard.html')) {
+        studentUrl = currentUrl.replace('dashboard.html', 'student.html');
+      } else {
+        studentUrl = currentUrl.replace(/\/$/, '') + '/student.html';
+      }
+
+      document.getElementById('db-student-url').textContent = studentUrl;
+      const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(studentUrl)}`;
+      document.getElementById('db-qrcode-img').src = qrApiUrl;
+
+      document.getElementById('btn-copy-url').onclick = () => {
+        navigator.clipboard.writeText(studentUrl).then(() => {
+          alert("已成功複製報到網址至剪貼簿！");
+        }).catch(() => {
+          prompt("請複製以下網址：", studentUrl);
+        });
+      };
+    }
+
+    initQRCode();
 
     function updateTimerDisplay(startTime) {
       if (!startTime) {
@@ -224,7 +288,7 @@
         tbody.innerHTML = `
           <tr>
             <td colspan="4" style="text-align: center; padding: 2rem; color: var(--text-muted);">
-              目前尚無小隊簽署契約，請學生掃描 QR Code 或輸入網址報到...
+              目前尚無小隊簽署契約，請同學掃描右側 QR Code 或輸入網址報到...
             </td>
           </tr>
         `;

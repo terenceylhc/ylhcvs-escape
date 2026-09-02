@@ -43,7 +43,7 @@
     }
 
     .magic-container {
-      max-width: 800px;
+      max-width: 850px;
       margin: 2rem auto;
       padding: 0 1rem;
       position: relative;
@@ -53,11 +53,11 @@
     /* 飛入的入學信封卡片 */
     .letter-card {
       background: var(--parchment);
-      color: #3b2a1a;
+      color: #1a0f07;
       border: 4px double var(--parchment-border);
       border-radius: 16px;
-      padding: 2.5rem 2rem;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(251, 191, 36, 0.3);
+      padding: 2.5rem 2.2rem;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 35px rgba(251, 191, 36, 0.4);
       position: relative;
       transform: translateY(-50px) scale(0.9);
       opacity: 0;
@@ -71,19 +71,19 @@
 
     /* 火漆章火漆封印 */
     .wax-seal {
-      width: 70px;
-      height: 70px;
+      width: 75px;
+      height: 75px;
       background: radial-gradient(circle at 30% 30%, #dc2626, #991b1b);
       border-radius: 50%;
       position: absolute;
-      top: -35px;
+      top: -38px;
       right: 40px;
       box-shadow: 0 4px 15px rgba(0,0,0,0.5), inset 0 2px 5px rgba(255,255,255,0.4);
       display: flex;
       align-items: center;
       justify-content: center;
       color: #fef08a;
-      font-size: 1.8rem;
+      font-size: 2rem;
       border: 3px solid #7f1d1d;
       animation: pulseSeal 2s infinite;
     }
@@ -109,35 +109,23 @@
       100% { transform: translate(-15px, 10px) rotate(-10deg); }
     }
 
+    /* 加大、加粗、極清晰字體 */
     .story-text {
-      font-family: "Georgia", "Noto Serif TC", serif;
-      font-size: 1.05rem;
-      line-height: 1.95;
-      color: #291e13;
+      font-family: "Microsoft JhengHei", "微軟正黑體", "Heiti TC", sans-serif;
+      font-size: 1.3rem;
+      font-weight: 700;
+      line-height: 2.1;
+      color: #1a0f07;
       white-space: pre-line;
       margin-bottom: 2rem;
-      min-height: 200px;
-    }
-
-    .typewriter-cursor {
-      display: inline-block;
-      width: 3px;
-      height: 1.2rem;
-      background: var(--parchment-border);
-      margin-left: 2px;
-      animation: blinkCursor 0.8s infinite;
-      vertical-align: middle;
-    }
-
-    @keyframes blinkCursor {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0; }
+      min-height: 220px;
+      letter-spacing: 0.5px;
     }
 
     .portal-btn-group {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 1rem;
+      gap: 1.25rem;
       margin-top: 2rem;
     }
 
@@ -145,12 +133,16 @@
       .portal-btn-group {
         grid-template-columns: 1fr;
       }
+      .story-text {
+        font-size: 1.15rem;
+        line-height: 1.9;
+      }
     }
 
     .magic-btn {
-      padding: 1.1rem;
-      font-size: 1.1rem;
-      font-weight: 700;
+      padding: 1.2rem;
+      font-size: 1.2rem;
+      font-weight: 800;
       border-radius: 12px;
       border: 2px solid var(--magic-gold);
       cursor: pointer;
@@ -191,14 +183,15 @@
       position: fixed;
       top: 15px;
       right: 15px;
-      background: rgba(15, 23, 42, 0.8);
-      border: 1px solid var(--magic-gold);
+      background: rgba(15, 23, 42, 0.85);
+      border: 2px solid var(--magic-gold);
       color: var(--magic-gold);
-      padding: 0.5rem 1rem;
+      padding: 0.5rem 1.2rem;
       border-radius: 20px;
       cursor: pointer;
       z-index: 100;
-      font-size: 0.85rem;
+      font-size: 0.95rem;
+      font-weight: 700;
       backdrop-filter: blur(5px);
     }
   </style>
@@ -213,10 +206,10 @@
 
   <div class="magic-container">
     <div style="text-align: center; margin-bottom: 2rem;">
-      <h1 style="font-size: 2.2rem; color: var(--magic-gold); text-shadow: 0 0 15px rgba(251, 191, 36, 0.5); margin-bottom: 0.5rem;">
+      <h1 style="font-size: 2.4rem; color: var(--magic-gold); text-shadow: 0 0 20px rgba(251, 191, 36, 0.6); margin-bottom: 0.5rem; font-weight: 900;">
         ✨ 員家魔法學院
       </h1>
-      <p style="font-size: 1.1rem; color: #a5b4fc; letter-spacing: 2px;">
+      <p style="font-size: 1.2rem; color: #a5b4fc; letter-spacing: 2px; font-weight: 700;">
         圖書館失落秘境與智慧金鑰之試煉
       </p>
     </div>
@@ -226,11 +219,11 @@
       <div class="wax-seal">📜</div>
       <div id="quill-pen" class="quill-pen">🪶</div>
 
-      <h2 style="font-size: 1.4rem; color: #7c2d12; margin-bottom: 1rem; text-align: center; border-bottom: 2px dashed #b45309; padding-bottom: 0.75rem;">
+      <h2 style="font-size: 1.6rem; color: #7c2d12; margin-bottom: 1.25rem; text-align: center; border-bottom: 3px double #b45309; padding-bottom: 0.75rem; font-weight: 900;">
         ✉️ 高一魔法新生入學召集令
       </h2>
 
-      <!-- 自動寫字故事內文容器 -->
+      <!-- 自動寫字故事內文容器 (文字已加大、加粗) -->
       <div id="story-container" class="story-text"></div>
 
       <div class="portal-btn-group">
