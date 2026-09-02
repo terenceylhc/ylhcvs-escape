@@ -38,7 +38,7 @@
     <div class="brand">
       <span>✨ 員家魔法學院</span>
       <span style="opacity: 0.5;">|</span>
-      <span id="nav-class-name">學生試煉端</span>
+      <span>學生試煉端</span>
     </div>
     <div id="team-header-info" style="font-size: 0.85rem; font-weight: 700; color: var(--gold);">
       未登錄小隊
@@ -50,7 +50,7 @@
     <!-- 階段 1：填寫隊名報到卡 -->
     <div id="step-register" class="card">
       <div style="text-align: center; margin-bottom: 1.5rem;">
-        <h2 id="reg-title-session" style="font-size: 1.4rem; color: var(--gold); margin-bottom: 0.5rem;">
+        <h2 style="font-size: 1.4rem; color: var(--gold); margin-bottom: 0.5rem;">
           👥 成立魔法小隊，簽署契約
         </h2>
         <p style="font-size: 0.88rem; color: var(--text-muted);">
@@ -133,7 +133,6 @@
         <span id="level-badge" class="badge-tag badge-gold">
           試煉一 空間守護法則 (1/3題 | 全場 1/11 題)
         </span>
-        <!-- 地點資訊按照需求完全隱藏，避免學生直接得知地點線索 -->
         <span id="level-location" style="display: none;"></span>
       </div>
 
@@ -244,30 +243,23 @@
     };
 
     function renderStudentUI(state) {
-      const currentSession = window.gameEngine.getCurrentSession();
-      const navClassName = document.getElementById('nav-class-name');
-      const regTitleSession = document.getElementById('reg-title-session');
-      const regBtn = document.getElementById('btn-auto-register');
+      const teams = state.teams || {};
 
-      if (navClassName) navClassName.textContent = `${currentSession.name} 試煉端`;
-      if (regTitleSession) regTitleSession.textContent = `👥 【${currentSession.name}】成立魔法小隊，簽署契約`;
-
-      const sessionTeams = currentSession.teams || {};
-
-      if (currentTeamId && !sessionTeams[currentTeamId]) {
+      if (currentTeamId && !teams[currentTeamId]) {
         currentTeamId = null;
         localStorage.removeItem('ylhcvs_current_team_id');
       }
 
-      if (!currentTeamId || !sessionTeams[currentTeamId]) {
+      if (!currentTeamId || !teams[currentTeamId]) {
         document.getElementById('step-register').style.display = 'block';
         document.getElementById('step-waiting').style.display = 'none';
         document.getElementById('step-level-intro').style.display = 'none';
         document.getElementById('step-game').style.display = 'none';
         document.getElementById('step-level-clear').style.display = 'none';
         document.getElementById('step-complete').style.display = 'none';
-        document.getElementById('team-header-info').textContent = `未登錄小隊 (${currentSession.name})`;
+        document.getElementById('team-header-info').textContent = "未登錄小隊";
         
+        const regBtn = document.getElementById('btn-auto-register');
         if (regBtn) {
           regBtn.disabled = false;
           regBtn.innerHTML = "🚀 簽署契約，進入魔法試煉";
@@ -275,7 +267,7 @@
         return;
       }
 
-      const team = sessionTeams[currentTeamId];
+      const team = teams[currentTeamId];
       document.getElementById('team-header-info').textContent = `👥 【第 ${team.groupNum} 組】 ${team.name}`;
 
       if (team.completed) {
@@ -300,7 +292,7 @@
       }
 
       // 未開賽 ➔ 等待區
-      if (currentSession.status !== 'playing') {
+      if (state.status !== 'playing') {
         document.getElementById('step-register').style.display = 'none';
         document.getElementById('step-waiting').style.display = 'block';
         document.getElementById('step-level-intro').style.display = 'none';
@@ -435,8 +427,7 @@
     // 點擊過場卡「前往下一關」
     document.getElementById('btn-next-level').addEventListener('click', () => {
       if (!currentTeamId) return;
-      const session = window.gameEngine.getCurrentSession();
-      const team = session.teams[currentTeamId];
+      const team = window.gameEngine.state.teams[currentTeamId];
       if (team && typeof team.stepIndex === 'number') {
         localStorage.setItem('ylhcvs_ack_step_' + currentTeamId, team.stepIndex.toString());
       }
