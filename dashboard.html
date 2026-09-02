@@ -347,13 +347,11 @@
       window.gameEngine.startGame();
     });
 
+    // 重置大會取消密碼輸入，改為親和的防誤觸二次確認對話框
     document.getElementById('btn-db-reset').addEventListener('click', () => {
-      const pwd = prompt("🔐 請輸入管理員導師密碼以重置試煉：");
-      if (window.gameEngine.verifyAdminPassword(pwd)) {
+      if (confirm("⚠️ 確定要重置比賽大會嗎？\n此操作將清空所有已報到小隊資料與闖關進度！")) {
         window.gameEngine.resetGame();
-        alert("已成功重置魔法試煉！");
-      } else if (pwd !== null) {
-        alert("密碼不正確！");
+        alert("已成功重置魔法試煉大會！");
       }
     });
 
