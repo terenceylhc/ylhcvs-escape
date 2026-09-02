@@ -110,7 +110,6 @@
       height: 180px;
       display: block;
     }
-    /* 班級選擇器樣式 */
     .session-selector-bar {
       display: flex;
       align-items: center;
@@ -293,6 +292,7 @@
     }
 
     function renderDashboard(state) {
+      if (!window.gameEngine) return;
       const currentSession = window.gameEngine.getCurrentSession();
       const tbody = document.getElementById('leaderboard-tbody');
       const teamsCount = document.getElementById('registered-teams-count');
@@ -306,7 +306,7 @@
       tableSessionTitle.textContent = `🏆 【${currentSession.name}】小隊試煉排行榜`;
 
       // 渲染班級選單
-      if (state.sessions) {
+      if (state && state.sessions) {
         let selectHtml = '';
         Object.values(state.sessions).forEach(sess => {
           const isSel = sess.id === state.currentSessionId ? 'selected' : '';
@@ -434,15 +434,29 @@
       alert(archiveMsg);
     });
 
+    // 開啟試煉門（加入明確彈窗反饋與防錯）
     document.getElementById('btn-db-start').addEventListener('click', () => {
-      window.gameEngine.startGame();
+      try {
+        const sess = window.gameEngine.getCurrentSession();
+        window.gameEngine.startGame();
+        alert(`🚀 【${sess.name}】魔法試煉之門已成功開啟！同學手機可開始答題！`);
+      } catch (err) {
+        console.error("開啟試煉失敗：", err);
+        alert("開啟失敗，請確認已上傳最新的 app.js 檔案覆蓋 GitHub！");
+      }
     });
 
+    // 重置當前班級（加入明確彈窗反饋與防錯）
     document.getElementById('btn-db-reset').addEventListener('click', () => {
-      const sess = window.gameEngine.getCurrentSession();
-      if (confirm(`⚠️ 確定要重置【${sess.name}】的比賽大會嗎？\n此操作將清空本班所有已報到小隊資料！`)) {
-        window.gameEngine.resetGame();
-        alert(`已成功重置【${sess.name}】！`);
+      try {
+        const sess = window.gameEngine.getCurrentSession();
+        if (confirm(`⚠️ 確定要重置【${sess.name}】的比賽大會嗎？\n此操作將清空本班所有已報到小隊資料與闖關進度！`)) {
+          window.gameEngine.resetGame();
+          alert(`已成功重置【${sess.name}】！大螢幕已恢復全新空白狀態。`);
+        }
+      } catch (err) {
+        console.error("重置失敗：", err);
+        alert("重置失敗，請確認已上傳最新的 app.js 檔案覆蓋 GitHub！");
       }
     });
 

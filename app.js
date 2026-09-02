@@ -1,9 +1,5 @@
 /**
- * 員林家商圖書館密室逃脫 - 全域通訊與狀態控制核心 (App Core v54.0 - 方案 B 班級場次切換與成績歸檔版)
- * 特色功能：
- * 1. 支援班級場次切換 (如 101班, 102班, 103班)
- * 2. 切換至新班級時，畫面 100% 清空，舊班級成績自動歸檔歷史紀錄
- * 3. 各小隊配置 11 題 (關1:3題, 關2:3題, 關3:1題, 關4:3題隨機防抄, 關5:1題過卡)
+ * 員林家商圖書館密室逃脫 - 全域通訊與狀態控制核心 (App Core v55.0 - 容錯強化與無縫單頁/雙頁狀態相容版)
  */
 
 const DEFAULT_QUESTIONS_POOL = [
@@ -629,21 +625,26 @@ class GameEngine {
   }
 
   getCurrentSession() {
-    if (!this.state.sessions) this.state.sessions = {};
-    if (!this.state.currentSessionId || !this.state.sessions[this.state.currentSessionId]) {
-      const keys = Object.keys(this.state.sessions);
-      if (keys.length > 0) {
-        this.state.currentSessionId = keys[0];
-      } else {
-        this.state.currentSessionId = '101班';
-        this.state.sessions['101班'] = {
+    if (!this.state) this.state = this.loadState();
+    if (!this.state.sessions || typeof this.state.sessions !== 'object') {
+      this.state.sessions = {
+        '101班': {
           id: '101班',
           name: '高一 101 班',
-          status: 'setup',
-          winningQuota: 3,
-          startTime: null,
-          teams: {}
-        };
+          status: this.state.status || 'setup',
+          winningQuota: this.state.winningQuota || 3,
+          startTime: this.state.startTime || null,
+          teams: this.state.teams || {}
+        }
+      };
+      this.state.currentSessionId = '101班';
+    }
+    if (!this.state.currentSessionId || !this.state.sessions[this.state.currentSessionId]) {
+      const keys = Object.keys(this.state.sessions);
+      this.state.currentSessionId = keys.length > 0 ? keys[0] : '101班';
+      if (!this.state.sessions[this.state.currentSessionId]) {
+        this.state.sessions['101班'] = { id: '101班', name: '高一 101 班', status: 'setup', winningQuota: 3, startTime: null, teams: {} };
+        this.state.currentSessionId = '101班';
       }
     }
     return this.state.sessions[this.state.currentSessionId];
@@ -657,7 +658,7 @@ class GameEngine {
     }
     if (!state.sessions || typeof state.sessions !== 'object') {
       state.sessions = {
-        '101班': { id: '101班', name: '高一 101 班', status: 'setup', winningQuota: 3, startTime: null, teams: {} }
+        '101班': { id: '101班', name: '高一 101 班', status: state.status || 'setup', winningQuota: state.winningQuota || 3, startTime: state.startTime || null, teams: state.teams || {} }
       };
     }
     if (!state.currentSessionId || !state.sessions[state.currentSessionId]) {
@@ -783,7 +784,6 @@ class GameEngine {
     this.listeners.forEach(cb => cb(this.state));
   }
 
-  // 方案 B：切換班級/場次功能
   switchSession(sessionId, sessionName) {
     const cleanId = (sessionId || '101班').trim();
     const cleanName = (sessionName || `高一 ${cleanId}`).trim();
@@ -896,12 +896,17 @@ class GameEngine {
     const now = Date.now();
     session.status = 'playing';
     session.startTime = now;
+    this.state.status = 'playing';
+    this.state.startTime = now;
 
-    Object.values(session.teams).forEach(team => {
-      team.startTime = now;
-    });
+    if (session.teams) {
+      Object.values(session.teams).forEach(team => {
+        team.startTime = now;
+      });
+    }
 
     this.saveState();
+    return true;
   }
 
   resetGame() {
@@ -909,7 +914,11 @@ class GameEngine {
     session.status = 'setup';
     session.startTime = null;
     session.teams = {};
+    this.state.status = 'setup';
+    this.state.startTime = null;
+    this.state.teams = {};
     this.saveState();
+    return true;
   }
 
   verifyAdminPassword(password) {
@@ -1029,7 +1038,7 @@ class GameEngine {
   }
 
   getSortedLeaderboard(targetSessionId) {
-    const session = targetSessionId && this.state.sessions[targetSessionId] ? this.state.sessions[targetSessionId] : this.getCurrentSession();
+    const session = targetSessionId && this.state.sessions && this.state.sessions[targetSessionId] ? this.state.sessions[targetSessionId] : this.getCurrentSession();
     const teamsList = Object.values(session.teams || {});
 
     teamsList.sort((a, b) => {
