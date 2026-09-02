@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>📺 員家魔法學院 - 大螢幕試煉即時看板</title>
+  <title>📺 員家魔法學院 - 大螢幕試煉即時看板 (方案 B 班級場次版)</title>
   <link rel="stylesheet" href="style.css">
   <!-- Firebase 跨裝置即時通訊庫 -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -110,6 +110,26 @@
       height: 180px;
       display: block;
     }
+    /* 班級選擇器樣式 */
+    .session-selector-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: rgba(0,0,0,0.3);
+      padding: 0.5rem 1rem;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.15);
+      margin-bottom: 1rem;
+    }
+    .session-select {
+      background: #0f172a;
+      color: var(--gold);
+      border: 1px solid var(--gold);
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-weight: 700;
+    }
   </style>
 </head>
 <body>
@@ -117,7 +137,7 @@
   <header class="db-header">
     <div class="db-title">
       <span>✨ 員家魔法學院</span>
-      <span style="font-size: 1.1rem; color: #a5b4fc; font-weight: 400;">| 圖書館智慧金鑰試煉大會</span>
+      <span id="header-session-name" style="font-size: 1.1rem; color: #a5b4fc; font-weight: 400;">| 高一 101 班 試煉大會</span>
     </div>
     <div style="display: flex; align-items: center; gap: 2rem;">
       <div id="game-status-badge" class="badge-tag badge-gold" style="font-size: 1rem; padding: 0.4rem 1rem;">
@@ -131,8 +151,23 @@
   <div class="db-grid">
     <!-- 主區域：小隊即時解鎖進度排行榜 -->
     <div class="db-card">
+      
+      <!-- 方案 B：班級場次切換條 -->
+      <div class="session-selector-bar">
+        <span style="font-size: 0.9rem; color: var(--gold); font-weight: 700;">🏫 當前試煉班級：</span>
+        <select id="select-session" class="session-select"></select>
+
+        <button id="btn-add-session" class="btn btn-primary" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">
+          ➕ 開啟新班級
+        </button>
+
+        <button id="btn-view-archive" class="btn" style="font-size: 0.85rem; padding: 0.4rem 0.8rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);">
+          📜 查看歷史成績歸檔
+        </button>
+      </div>
+
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-        <h2 style="font-size: 1.3rem; color: var(--gold); margin: 0;">
+        <h2 id="table-session-title" style="font-size: 1.3rem; color: var(--gold); margin: 0;">
           🏆 各小隊解鎖試煉排行榜
         </h2>
         <span id="registered-teams-count" style="font-size: 0.9rem; color: var(--text-muted);">
@@ -198,7 +233,7 @@
             🚀 開啟試煉門
           </button>
           <button id="btn-db-reset" class="btn btn-danger" style="font-size: 0.9rem; padding: 0.8rem;">
-            🔄 重置大會
+            🔄 重置當前班級
           </button>
         </div>
       </div>
@@ -258,18 +293,35 @@
     }
 
     function renderDashboard(state) {
+      const currentSession = window.gameEngine.getCurrentSession();
       const tbody = document.getElementById('leaderboard-tbody');
       const teamsCount = document.getElementById('registered-teams-count');
       const statusBadge = document.getElementById('game-status-badge');
       const quotaInput = document.getElementById('db-quota-input');
+      const selectElem = document.getElementById('select-session');
+      const headerSessionName = document.getElementById('header-session-name');
+      const tableSessionTitle = document.getElementById('table-session-title');
 
-      quotaInput.value = state.winningQuota || 3;
+      headerSessionName.textContent = `| ${currentSession.name} 試煉大會`;
+      tableSessionTitle.textContent = `🏆 【${currentSession.name}】小隊試煉排行榜`;
 
-      if (state.status === 'playing') {
+      // 渲染班級選單
+      if (state.sessions) {
+        let selectHtml = '';
+        Object.values(state.sessions).forEach(sess => {
+          const isSel = sess.id === state.currentSessionId ? 'selected' : '';
+          selectHtml += `<option value="${sess.id}" ${isSel}>${sess.name}</option>`;
+        });
+        selectElem.innerHTML = selectHtml;
+      }
+
+      quotaInput.value = currentSession.winningQuota || 3;
+
+      if (currentSession.status === 'playing') {
         statusBadge.textContent = "🔮 魔法試煉進行中...";
         statusBadge.className = "badge-tag badge-gold";
-        if (!timerInterval && state.startTime) {
-          timerInterval = setInterval(() => updateTimerDisplay(state.startTime), 1000);
+        if (!timerInterval && currentSession.startTime) {
+          timerInterval = setInterval(() => updateTimerDisplay(currentSession.startTime), 1000);
         }
       } else {
         statusBadge.textContent = "⏳ 魔法陣準備中...";
@@ -288,7 +340,7 @@
         tbody.innerHTML = `
           <tr>
             <td colspan="4" style="text-align: center; padding: 2rem; color: var(--text-muted);">
-              目前尚無小隊簽署契約，請同學掃描右側 QR Code 或輸入網址報到...
+              目前【${currentSession.name}】尚無小隊報到，請同學掃描右側 QR Code 報到...
             </td>
           </tr>
         `;
@@ -343,15 +395,54 @@
       tbody.innerHTML = html;
     }
 
+    // 班級切換事件
+    document.getElementById('select-session').addEventListener('change', (e) => {
+      const selectedId = e.target.value;
+      const sess = window.gameEngine.state.sessions[selectedId];
+      if (sess) {
+        window.gameEngine.switchSession(sess.id, sess.name);
+      }
+    });
+
+    // 建立新班級按鈕
+    document.getElementById('btn-add-session').addEventListener('click', () => {
+      const name = prompt("✨ 請輸入新班級/試煉梯次名稱（例如：102班 或 103班）：");
+      if (name && name.trim()) {
+        const cleanName = name.trim();
+        const sessId = cleanName.endsWith('班') ? cleanName : `${cleanName}班`;
+        window.gameEngine.switchSession(sessId, `高一 ${sessId}`);
+        alert(`已成功切換至全新的【高一 ${sessId}】試煉！舊班級成績已安全歸檔。`);
+      }
+    });
+
+    // 查看歷史歸檔按鈕
+    document.getElementById('btn-view-archive').addEventListener('click', () => {
+      const sessions = window.gameEngine.state.sessions || {};
+      let archiveMsg = "📜 【歷史班級試煉成績歸檔】\n\n";
+      Object.values(sessions).forEach(sess => {
+        const sorted = window.gameEngine.getSortedLeaderboard(sess.id);
+        archiveMsg += `🏫 ${sess.name} (共 ${sorted.length} 組小隊):\n`;
+        if (sorted.length === 0) {
+          archiveMsg += "  (尚無報到紀錄)\n";
+        } else {
+          sorted.slice(0, 3).forEach((t, idx) => {
+            archiveMsg += `  第 ${idx + 1} 名: 第 ${t.groupNum} 組 - ${t.name} (${t.completed ? '通關' : '進行中'})\n`;
+          });
+        }
+        archiveMsg += "\n";
+      });
+      alert(archiveMsg);
+    });
+
     document.getElementById('btn-db-start').addEventListener('click', () => {
       window.gameEngine.startGame();
     });
 
-    // 重置大會取消密碼輸入，改為親和的防誤觸二次確認對話框
     document.getElementById('btn-db-reset').addEventListener('click', () => {
-      if (confirm("⚠️ 確定要重置比賽大會嗎？\n此操作將清空所有已報到小隊資料與闖關進度！")) {
+      const sess = window.gameEngine.getCurrentSession();
+      if (confirm(`⚠️ 確定要重置【${sess.name}】的比賽大會嗎？\n此操作將清空本班所有已報到小隊資料！`)) {
         window.gameEngine.resetGame();
-        alert("已成功重置魔法試煉大會！");
+        alert(`已成功重置【${sess.name}】！`);
       }
     });
 

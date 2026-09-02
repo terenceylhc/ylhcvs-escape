@@ -1,11 +1,9 @@
 /**
- * 員林家商圖書館密室逃脫 - 全域通訊與狀態控制核心 (App Core v53.0 - 11題精準驗證與舊測試快取自動修復)
- * 出題配置：
- * 關卡一：3 題 (隨機) -> 第 1, 2, 3 題 (答完第 3 題才觸發關卡一通關過場卡)
- * 關卡二：3 題 (隨機) -> 第 4, 5, 6 題 (答完第 6 題觸發關卡二通關過場卡)
- * 關卡三：1 題 (輪替) -> 第 7 題 (答完第 7 題觸發關卡三通關過場卡)
- * 關卡四：3 題 (隨機) -> 第 8, 9, 10 題 (答完第 10 題觸發關卡四通關過場卡)
- * 關卡五：1 題 (輪替過卡) -> 第 11 題 (答完第 11 題全卡通關)
+ * 員林家商圖書館密室逃脫 - 全域通訊與狀態控制核心 (App Core v54.0 - 方案 B 班級場次切換與成績歸檔版)
+ * 特色功能：
+ * 1. 支援班級場次切換 (如 101班, 102班, 103班)
+ * 2. 切換至新班級時，畫面 100% 清空，舊班級成績自動歸檔歷史紀錄
+ * 3. 各小隊配置 11 題 (關1:3題, 關2:3題, 關3:1題, 關4:3題隨機防抄, 關5:1題過卡)
  */
 
 const DEFAULT_QUESTIONS_POOL = [
@@ -590,11 +588,18 @@ const DEFAULT_QUESTIONS_POOL = [
 ];
 
 const DEFAULT_STATE = {
-  status: 'setup',
-  winningQuota: 3,
-  startTime: null,
+  currentSessionId: '101班',
   questions: DEFAULT_QUESTIONS_POOL,
-  teams: {}
+  sessions: {
+    '101班': {
+      id: '101班',
+      name: '高一 101 班',
+      status: 'setup',
+      winningQuota: 3,
+      startTime: null,
+      teams: {}
+    }
+  }
 };
 
 class GameEngine {
@@ -623,29 +628,57 @@ class GameEngine {
     }));
   }
 
+  getCurrentSession() {
+    if (!this.state.sessions) this.state.sessions = {};
+    if (!this.state.currentSessionId || !this.state.sessions[this.state.currentSessionId]) {
+      const keys = Object.keys(this.state.sessions);
+      if (keys.length > 0) {
+        this.state.currentSessionId = keys[0];
+      } else {
+        this.state.currentSessionId = '101班';
+        this.state.sessions['101班'] = {
+          id: '101班',
+          name: '高一 101 班',
+          status: 'setup',
+          winningQuota: 3,
+          startTime: null,
+          teams: {}
+        };
+      }
+    }
+    return this.state.sessions[this.state.currentSessionId];
+  }
+
   sanitizeState(rawState) {
     if (!rawState) return JSON.parse(JSON.stringify(DEFAULT_STATE));
     const state = rawState;
-    if (!state.teams) state.teams = {};
     if (!state.questions || !Array.isArray(state.questions) || state.questions.length === 0) {
       state.questions = DEFAULT_QUESTIONS_POOL;
     }
-    if (!state.status) state.status = 'setup';
-    if (!state.winningQuota) state.winningQuota = 3;
+    if (!state.sessions || typeof state.sessions !== 'object') {
+      state.sessions = {
+        '101班': { id: '101班', name: '高一 101 班', status: 'setup', winningQuota: 3, startTime: null, teams: {} }
+      };
+    }
+    if (!state.currentSessionId || !state.sessions[state.currentSessionId]) {
+      state.currentSessionId = Object.keys(state.sessions)[0] || '101班';
+    }
 
-    Object.values(state.teams).forEach(team => {
-      team.levelSequence = [1, 2, 3, 4, 5];
+    Object.values(state.sessions).forEach(session => {
+      if (!session.teams) session.teams = {};
+      if (!session.status) session.status = 'setup';
+      if (!session.winningQuota) session.winningQuota = 3;
 
-      // 自動升級與修正：確保舊小隊資料自動更新為最新的 11 題配額
-      if (!team.assignedQuestionsList || !Array.isArray(team.assignedQuestionsList) || team.assignedQuestionsList.length !== 11 || team.assignedQuestionsList.some(q => !q)) {
-        team.assignedQuestionsList = this.generateQuestionsListForTeam(team.groupNum || 1, state.questions);
-        if (typeof team.stepIndex === 'number' && team.stepIndex > 11) {
-          team.stepIndex = 0;
+      Object.values(session.teams).forEach(team => {
+        team.levelSequence = [1, 2, 3, 4, 5];
+
+        if (!team.assignedQuestionsList || !Array.isArray(team.assignedQuestionsList) || team.assignedQuestionsList.length !== 11 || team.assignedQuestionsList.some(q => !q)) {
+          team.assignedQuestionsList = this.generateQuestionsListForTeam(team.groupNum || 1, state.questions);
         }
-      }
-      if (typeof team.stepIndex !== 'number') team.stepIndex = 0;
-      if (!team.levelTimes) team.levelTimes = {};
-      if (!team.failedAttempts) team.failedAttempts = {};
+        if (typeof team.stepIndex !== 'number') team.stepIndex = 0;
+        if (!team.levelTimes) team.levelTimes = {};
+        if (!team.failedAttempts) team.failedAttempts = {};
+      });
     });
 
     return state;
@@ -654,19 +687,7 @@ class GameEngine {
   mergeState(incomingState) {
     if (!incomingState) return;
     const sanitized = this.sanitizeState(incomingState);
-
-    const mergedTeams = { ...(sanitized.teams || {}) };
-
-    if (this.state && this.state.teams) {
-      Object.keys(this.state.teams).forEach(tid => {
-        if (!mergedTeams[tid]) {
-          mergedTeams[tid] = this.state.teams[tid];
-        }
-      });
-    }
-
     this.state = sanitized;
-    this.state.teams = mergedTeams;
   }
 
   initFirebase(retryCount = 0) {
@@ -702,11 +723,11 @@ class GameEngine {
         this.notifyListeners();
       });
 
-      this.firebaseDb.ref('ylhcvs_game_state').on('value', (snapshot) => {
+      this.firebaseDb.ref('ylhcvs_game_state_b').on('value', (snapshot) => {
         const val = snapshot.val();
         if (val) {
           this.mergeState(val);
-          localStorage.setItem('ylhcvs_escape_state', JSON.stringify(this.state));
+          localStorage.setItem('ylhcvs_escape_state_b', JSON.stringify(this.state));
           this.notifyListeners();
         }
       }, (error) => {
@@ -723,7 +744,7 @@ class GameEngine {
   }
 
   loadState() {
-    const saved = localStorage.getItem('ylhcvs_escape_state');
+    const saved = localStorage.getItem('ylhcvs_escape_state_b');
     if (saved) {
       try { 
         return this.sanitizeState(JSON.parse(saved)); 
@@ -734,12 +755,12 @@ class GameEngine {
 
   saveState() {
     this.state = this.sanitizeState(this.state);
-    localStorage.setItem('ylhcvs_escape_state', JSON.stringify(this.state));
+    localStorage.setItem('ylhcvs_escape_state_b', JSON.stringify(this.state));
     this.channel.postMessage({ type: 'STATE_UPDATE', state: this.state });
     
     if (this.firebaseDb) {
       const cleanData = this.cleanObjectForFirebase(this.state);
-      this.firebaseDb.ref('ylhcvs_game_state').set(cleanData).then(() => {
+      this.firebaseDb.ref('ylhcvs_game_state_b').set(cleanData).then(() => {
         this.firebaseStatus = "CONNECTED";
         this.firebaseError = null;
       }).catch(err => {
@@ -762,14 +783,28 @@ class GameEngine {
     this.listeners.forEach(cb => cb(this.state));
   }
 
-  /**
-   * 分配各小隊 11 題陣列：
-   * 關卡 1: 3 題 (第 1, 2, 3 題)
-   * 關卡 2: 3 題 (第 4, 5, 6 題)
-   * 關卡 3: 1 題 (第 7 題)
-   * 關卡 4: 3 題 (第 8, 9, 10 題)
-   * 關卡 5: 1 題 (第 11 題)
-   */
+  // 方案 B：切換班級/場次功能
+  switchSession(sessionId, sessionName) {
+    const cleanId = (sessionId || '101班').trim();
+    const cleanName = (sessionName || `高一 ${cleanId}`).trim();
+
+    if (!this.state.sessions) this.state.sessions = {};
+
+    if (!this.state.sessions[cleanId]) {
+      this.state.sessions[cleanId] = {
+        id: cleanId,
+        name: cleanName,
+        status: 'setup',
+        winningQuota: 3,
+        startTime: null,
+        teams: {}
+      };
+    }
+
+    this.state.currentSessionId = cleanId;
+    this.saveState();
+  }
+
   generateQuestionsListForTeam(groupNum, questionsPool) {
     let pool = DEFAULT_QUESTIONS_POOL;
     if (Array.isArray(questionsPool) && questionsPool.length > 0) {
@@ -793,19 +828,11 @@ class GameEngine {
 
     const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
 
-    // 關卡 1：隨機抽 3 題
     const qL1 = shuffle(safeCat1).slice(0, 3);
-    // 關卡 2：隨機抽 3 題
     const qL2 = shuffle(safeCat2).slice(0, 3);
-
-    // 關卡 3：抽 1 題 (按組別輪替)
     const offset3 = (groupNum - 1) % (safeCat3.length || 11);
     const qL3 = [safeCat3[offset3] || safeCat3[0]];
-
-    // 關卡 4：隨機抽 3 題 (隨機亂數防抄襲)
     const qL4 = shuffle(safeCat4).slice(0, 3);
-
-    // 關卡 5：抽 1 題 (按組別輪替過卡)
     const offset5 = (groupNum - 1) % (safeCat5.length || 10);
     const qL5 = [safeCat5[offset5] || safeCat5[0]];
 
@@ -822,18 +849,16 @@ class GameEngine {
   }
 
   autoRegisterTeam(teamName, members) {
+    const session = this.getCurrentSession();
     const defaultName = teamName ? teamName.trim() : "";
     const cleanMembers = members ? members.trim() : "";
 
-    const existingTeam = Object.values(this.state.teams).find(t => t.name === defaultName && !t.completed);
+    const existingTeam = Object.values(session.teams).find(t => t.name === defaultName && !t.completed);
     if (existingTeam) {
-      if (!existingTeam.assignedQuestionsList || existingTeam.assignedQuestionsList.length !== 11) {
-        existingTeam.assignedQuestionsList = this.generateQuestionsListForTeam(existingTeam.groupNum || 1, this.state.questions);
-      }
       return existingTeam;
     }
 
-    const teamKeys = Object.keys(this.state.teams);
+    const teamKeys = Object.keys(session.teams);
     const nextGroupNum = teamKeys.length + 1;
     const teamId = `team_${nextGroupNum}_${Date.now().toString().slice(-4)}`;
     const finalName = defaultName || `第 ${nextGroupNum} 組`;
@@ -852,25 +877,27 @@ class GameEngine {
       completed: false,
       finishTime: null,
       levelTimes: {},
-      startTime: this.state.startTime || Date.now()
+      startTime: session.startTime || Date.now()
     };
 
-    this.state.teams[teamId] = newTeam;
+    session.teams[teamId] = newTeam;
     this.saveState();
     return newTeam;
   }
 
   setWinningQuota(quota) {
-    this.state.winningQuota = parseInt(quota) || 3;
+    const session = this.getCurrentSession();
+    session.winningQuota = parseInt(quota) || 3;
     this.saveState();
   }
 
   startGame() {
+    const session = this.getCurrentSession();
     const now = Date.now();
-    this.state.status = 'playing';
-    this.state.startTime = now;
+    session.status = 'playing';
+    session.startTime = now;
 
-    Object.values(this.state.teams).forEach(team => {
+    Object.values(session.teams).forEach(team => {
       team.startTime = now;
     });
 
@@ -878,9 +905,10 @@ class GameEngine {
   }
 
   resetGame() {
-    this.state.status = 'setup';
-    this.state.startTime = null;
-    this.state.teams = {};
+    const session = this.getCurrentSession();
+    session.status = 'setup';
+    session.startTime = null;
+    session.teams = {};
     this.saveState();
   }
 
@@ -889,7 +917,8 @@ class GameEngine {
   }
 
   getCurrentQuestionForTeam(teamId) {
-    const team = this.state.teams[teamId];
+    const session = this.getCurrentSession();
+    const team = session.teams[teamId];
     if (!team) return null;
 
     const qList = team.assignedQuestionsList || [];
@@ -907,18 +936,17 @@ class GameEngine {
     let levelSubStep = 1;
     let levelSubTotal = 1;
 
-    // 出題配額：L1(3題: 0,1,2), L2(3題: 3,4,5), L3(1題: 6), L4(3題: 7,8,9), L5(1題: 10) -> 全場共11題
     if (catLevel === 1) {
-      levelSubStep = stepIdx + 1; // 1, 2, 3
+      levelSubStep = stepIdx + 1;
       levelSubTotal = 3;
     } else if (catLevel === 2) {
-      levelSubStep = stepIdx - 3 + 1; // 1, 2, 3
+      levelSubStep = stepIdx - 3 + 1;
       levelSubTotal = 3;
     } else if (catLevel === 3) {
       levelSubStep = 1;
       levelSubTotal = 1;
     } else if (catLevel === 4) {
-      levelSubStep = stepIdx - 7 + 1; // 1, 2, 3
+      levelSubStep = stepIdx - 7 + 1;
       levelSubTotal = 3;
     } else if (catLevel === 5) {
       levelSubStep = 1;
@@ -947,11 +975,12 @@ class GameEngine {
   }
 
   submitAnswer(teamId, answerInput) {
-    if (this.state.status !== 'playing') {
+    const session = this.getCurrentSession();
+    if (session.status !== 'playing') {
       return { success: false, message: "比賽尚未開始，請等待老師開啟！" };
     }
 
-    const team = this.state.teams[teamId];
+    const team = session.teams[teamId];
     if (!team) return { success: false, message: "找不到該組別！" };
     if (team.completed) return { success: false, message: "您的團隊已通關！" };
 
@@ -999,8 +1028,9 @@ class GameEngine {
     }
   }
 
-  getSortedLeaderboard() {
-    const teamsList = Object.values(this.state.teams || {});
+  getSortedLeaderboard(targetSessionId) {
+    const session = targetSessionId && this.state.sessions[targetSessionId] ? this.state.sessions[targetSessionId] : this.getCurrentSession();
+    const teamsList = Object.values(session.teams || {});
 
     teamsList.sort((a, b) => {
       const aStep = a.stepIndex || 0;

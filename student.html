@@ -38,7 +38,7 @@
     <div class="brand">
       <span>✨ 員家魔法學院</span>
       <span style="opacity: 0.5;">|</span>
-      <span>學生試煉端</span>
+      <span id="nav-class-name">學生試煉端</span>
     </div>
     <div id="team-header-info" style="font-size: 0.85rem; font-weight: 700; color: var(--gold);">
       未登錄小隊
@@ -50,7 +50,7 @@
     <!-- 階段 1：填寫隊名報到卡 -->
     <div id="step-register" class="card">
       <div style="text-align: center; margin-bottom: 1.5rem;">
-        <h2 style="font-size: 1.4rem; color: var(--gold); margin-bottom: 0.5rem;">
+        <h2 id="reg-title-session" style="font-size: 1.4rem; color: var(--gold); margin-bottom: 0.5rem;">
           👥 成立魔法小隊，簽署契約
         </h2>
         <p style="font-size: 0.88rem; color: var(--text-muted);">
@@ -229,7 +229,7 @@
       3: {
         title: "📚 試煉三：【二樓禁書區號段封印】解謎攻略",
         desc: "請前往【二樓書庫】，根據題目給予的索書號找到該架位圖書，目視查看【書背標籤處】貼紙英文字母。<br><span style='color:var(--gold); font-weight:700;'>💡 提醒：字母輸入「大小寫皆可」（例如 LION 或 lion 皆算正確）！</span><br><span style='color:var(--danger); font-weight:700;'>⚠️ 注意：目視查看即可，請勿拿取或抽取書籍！</span>",
-        example: "<b>【模擬示範題目】</b><br>目視查看 4 本圖書標籤貼紙字母：<br>❶[索書號 855.1...] ❷[索書号 855.1...]<br>❸[索書號 855.1...] ❹[索書號 855.1...]<br><br><b>【解題示範步驟】</b><br>前往指定架位，依序目視看見貼紙字母 L, I, O, N。<br><b>👉 答案請輸入：lion (大寫 LION 或小寫 lion 皆可)</b>"
+        example: "<b>【模擬示範題目】</b><br>目視查看 4 本圖書標籤貼紙字母：<br>❶[索書號 855.1...] ❷[索書號 855.1...]<br>❸[索書號 855.1...] ❹[索書號 855.1...]<br><br><b>【解題示範步驟】</b><br>前往指定架位，依序目視看見貼紙字母 L, I, O, N。<br><b>👉 答案請輸入：lion (大寫 LION 或小寫 lion 皆可)</b>"
       },
       4: {
         title: "📰 試煉四：【期刊架歷史符文密碼】解謎攻略",
@@ -244,21 +244,29 @@
     };
 
     function renderStudentUI(state) {
+      const currentSession = window.gameEngine.getCurrentSession();
+      const navClassName = document.getElementById('nav-class-name');
+      const regTitleSession = document.getElementById('reg-title-session');
       const regBtn = document.getElementById('btn-auto-register');
 
-      if (currentTeamId && state.teams && !state.teams[currentTeamId]) {
+      if (navClassName) navClassName.textContent = `${currentSession.name} 試煉端`;
+      if (regTitleSession) regTitleSession.textContent = `👥 【${currentSession.name}】成立魔法小隊，簽署契約`;
+
+      const sessionTeams = currentSession.teams || {};
+
+      if (currentTeamId && !sessionTeams[currentTeamId]) {
         currentTeamId = null;
         localStorage.removeItem('ylhcvs_current_team_id');
       }
 
-      if (!currentTeamId || !state.teams[currentTeamId]) {
+      if (!currentTeamId || !sessionTeams[currentTeamId]) {
         document.getElementById('step-register').style.display = 'block';
         document.getElementById('step-waiting').style.display = 'none';
         document.getElementById('step-level-intro').style.display = 'none';
         document.getElementById('step-game').style.display = 'none';
         document.getElementById('step-level-clear').style.display = 'none';
         document.getElementById('step-complete').style.display = 'none';
-        document.getElementById('team-header-info').textContent = "未登錄小隊";
+        document.getElementById('team-header-info').textContent = `未登錄小隊 (${currentSession.name})`;
         
         if (regBtn) {
           regBtn.disabled = false;
@@ -267,7 +275,7 @@
         return;
       }
 
-      const team = state.teams[currentTeamId];
+      const team = sessionTeams[currentTeamId];
       document.getElementById('team-header-info').textContent = `👥 【第 ${team.groupNum} 組】 ${team.name}`;
 
       if (team.completed) {
@@ -292,7 +300,7 @@
       }
 
       // 未開賽 ➔ 等待區
-      if (state.status !== 'playing') {
+      if (currentSession.status !== 'playing') {
         document.getElementById('step-register').style.display = 'none';
         document.getElementById('step-waiting').style.display = 'block';
         document.getElementById('step-level-intro').style.display = 'none';
@@ -303,7 +311,7 @@
         return;
       }
 
-      // 比賽中：檢查是否處於關卡通關過場節點 (出題配額：L1: 3題, L2: 3題, L3: 1題, L4: 3題, L5: 1題 ➔ 觸發點為 stepIndex: 3, 6, 7, 10)
+      // 比賽中：檢查是否處於關卡通關過場節點 (stepIndex 觸發點: 3, 6, 7, 10)
       const stepIdx = typeof team.stepIndex === 'number' ? team.stepIndex : 0;
       const ackStep = parseInt(localStorage.getItem('ylhcvs_ack_step_' + currentTeamId) || '0');
 
@@ -427,7 +435,8 @@
     // 點擊過場卡「前往下一關」
     document.getElementById('btn-next-level').addEventListener('click', () => {
       if (!currentTeamId) return;
-      const team = window.gameEngine.state.teams[currentTeamId];
+      const session = window.gameEngine.getCurrentSession();
+      const team = session.teams[currentTeamId];
       if (team && typeof team.stepIndex === 'number') {
         localStorage.setItem('ylhcvs_ack_step_' + currentTeamId, team.stepIndex.toString());
       }
