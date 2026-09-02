@@ -145,7 +145,7 @@
           <tr>
             <th style="width: 10%;">名次</th>
             <th style="width: 25%;">小隊名稱</th>
-            <th style="width: 45%;">5 大魔法試煉總進度 (9 題)</th>
+            <th style="width: 45%;">5 大魔法試煉總進度 (11 題)</th>
             <th style="width: 20%;">狀態 / 耗時</th>
           </tr>
         </thead>
@@ -299,14 +299,14 @@
       sortedTeams.forEach((team, idx) => {
         const rank = idx + 1;
         const stepIdx = typeof team.stepIndex === 'number' ? team.stepIndex : 0;
-        const percent = Math.min(100, Math.round((stepIdx / 9) * 100));
+        const percent = Math.min(100, Math.round((stepIdx / 11) * 100));
 
         let rankBadge = `第 ${rank} 名`;
         if (rank === 1) rankBadge = '🥇 第 1 名';
         else if (rank === 2) rankBadge = '🥈 第 2 名';
         else if (rank === 3) rankBadge = '🥉 第 3 名';
 
-        let statusTxt = `解答中 (${stepIdx}/9題)`;
+        let statusTxt = `解答中 (${stepIdx}/11題)`;
         let rowClass = 'rank-row';
         if (rank === 1) rowClass += ' rank-1';
 
@@ -326,7 +326,7 @@
             </td>
             <td>
               <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.3rem;">
-                <span>封印進度：${stepIdx} / 9 題</span>
+                <span>封印進度：${stepIdx} / 11 題</span>
                 <span>${percent}%</span>
               </div>
               <div class="progress-bar-bg">

@@ -54,7 +54,7 @@
           👥 成立魔法小隊，簽署契約
         </h2>
         <p style="font-size: 0.88rem; color: var(--text-muted);">
-          請每組（2~4 人）由一名代表輸入隊名，系統將自動為您開啟 5 大魔法封印 (共 9 題) 解鎖試煉：
+          請每組（2~4 人）由一名代表輸入隊名，系統將自動為您開啟 5 大魔法封印 (共 11 題) 解鎖試煉：
         </p>
       </div>
 
@@ -131,7 +131,7 @@
     <div id="step-game" class="card" style="display: none;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
         <span id="level-badge" class="badge-tag badge-gold">
-          試煉一 空間守護法則 (1/2題 | 全場 1/9 題)
+          試煉一 空間守護法則 (1/3題 | 全場 1/11 題)
         </span>
         <!-- 地點資訊按照需求完全隱藏，避免學生直接得知地點線索 -->
         <span id="level-location" style="display: none;"></span>
@@ -177,7 +177,7 @@
       </p>
 
       <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 10px; font-size: 0.88rem; color: var(--secondary); margin-bottom: 1.5rem;">
-        ✨ 試煉總進度：已解開 <span id="level-clear-progress" style="color: var(--gold); font-weight: 700;">2</span> / 9 道封印
+        ✨ 試煉總進度：已解開 <span id="level-clear-progress" style="color: var(--gold); font-weight: 700;">3</span> / 11 道封印
       </div>
 
       <button id="btn-next-level" class="btn btn-success" style="font-size: 1.1rem; padding: 0.9rem;">
@@ -190,7 +190,7 @@
       <div style="font-size: 4rem; margin-bottom: 0.5rem;">👑</div>
       <h2 style="font-size: 1.6rem; color: var(--gold); margin-bottom: 0.5rem;">恭喜榮獲【智慧金鑰】！</h2>
       <p style="font-size: 1rem; color: var(--text-muted); margin-bottom: 1.5rem;">
-        你們成功解開員家圖書館 5 大魔法區域 9 大封印考驗，贏得圖書館賢者最高榮譽「智慧金鑰」！
+        你們成功解開員家圖書館 5 大魔法區域 11 大封印考驗，贏得圖書館賢者最高榮譽「智慧金鑰」！
       </p>
 
       <div style="background: rgba(255,255,255,0.05); padding: 1.25rem; border-radius: 12px; margin-bottom: 1.5rem;">
@@ -229,7 +229,7 @@
       3: {
         title: "📚 試煉三：【二樓禁書區號段封印】解謎攻略",
         desc: "請前往【二樓書庫】，根據題目給予的索書號找到該架位圖書，目視查看【書背標籤處】貼紙英文字母。<br><span style='color:var(--gold); font-weight:700;'>💡 提醒：字母輸入「大小寫皆可」（例如 LION 或 lion 皆算正確）！</span><br><span style='color:var(--danger); font-weight:700;'>⚠️ 注意：目視查看即可，請勿拿取或抽取書籍！</span>",
-        example: "<b>【模擬示範題目】</b><br>目視查看 4 本圖書標籤貼紙字母：<br>❶[索書號 855.1...] ❷[索書號 855.1...]<br>❸[索書號 855.1...] ❹[索書號 855.1...]<br><br><b>【解題示範步驟】</b><br>前往指定架位，依序目視看見貼紙字母 L, I, O, N。<br><b>👉 答案請輸入：lion (大寫 LION 或小寫 lion 皆可)</b>"
+        example: "<b>【模擬示範題目】</b><br>目視查看 4 本圖書標籤貼紙字母：<br>❶[索書號 855.1...] ❷[索書号 855.1...]<br>❸[索書號 855.1...] ❹[索書號 855.1...]<br><br><b>【解題示範步驟】</b><br>前往指定架位，依序目視看見貼紙字母 L, I, O, N。<br><b>👉 答案請輸入：lion (大寫 LION 或小寫 lion 皆可)</b>"
       },
       4: {
         title: "📰 試煉四：【期刊架歷史符文密碼】解謎攻略",
@@ -303,11 +303,11 @@
         return;
       }
 
-      // 比賽中：檢查是否處於關卡通關過場節點 (stepIndex 為 2, 4, 6, 8 且尚未點擊確認點)
+      // 比賽中：檢查是否處於關卡通關過場節點 (出題配額：L1: 3題, L2: 3題, L3: 1題, L4: 3題, L5: 1題 ➔ 觸發點為 stepIndex: 3, 6, 7, 10)
       const stepIdx = typeof team.stepIndex === 'number' ? team.stepIndex : 0;
       const ackStep = parseInt(localStorage.getItem('ylhcvs_ack_step_' + currentTeamId) || '0');
 
-      if ((stepIdx === 2 || stepIdx === 4 || stepIdx === 6 || stepIdx === 8) && ackStep < stepIdx) {
+      if ((stepIdx === 3 || stepIdx === 6 || stepIdx === 7 || stepIdx === 10) && ackStep < stepIdx) {
         document.getElementById('step-register').style.display = 'none';
         document.getElementById('step-waiting').style.display = 'none';
         document.getElementById('step-level-intro').style.display = 'none';
@@ -316,10 +316,10 @@
         document.getElementById('step-complete').style.display = 'none';
 
         const clearInfo = {
-          2: { title: "🎉 成功解開第 1 道魔法封印！", desc: "你們小隊成功破譯館舍空間守護法則，獲得前往第 2 道試煉的魔法權限！", nextName: "試煉二：WebOPAC 靈魂水晶檢索" },
-          4: { title: "🎉 成功解開第 2 道魔法封印！", desc: "你們小隊成功在 WebOPAC 靈魂水晶查出圖書密碼，獲得前往第 3 道試煉的魔法權限！", nextName: "試煉三：二樓禁書區號段封印" },
-          6: { title: "🎉 成功解開第 3 道魔法封印！", desc: "你們小隊成功在二樓禁書區收集到英文字母暗號，獲得前往第 4 道試煉的魔法權限！", nextName: "試煉四：期刊架歷史符文密碼" },
-          8: { title: "🎉 成功解開第 4 道魔法封印！", desc: "你們小隊成功在當期與過期期刊區找到符文密碼，獲得前往終極第 5 道試煉的魔法權限！", nextName: "試煉五：流通櫃台過卡驗證" }
+          3: { title: "🎉 成功解開第 1 道魔法封印！", desc: "你們小隊成功破譯館舍空間守護法則的 3 大算式，獲得前往第 2 道試煉的魔法權限！", nextName: "試煉二：WebOPAC 靈魂水晶檢索" },
+          6: { title: "🎉 成功解開第 2 道魔法封印！", desc: "你們小隊成功在 WebOPAC 靈魂水晶查出 3 大圖書密碼，獲得前往第 3 道試煉的魔法權限！", nextName: "試煉三：二樓禁書區號段封印" },
+          7: { title: "🎉 成功解開第 3 道魔法封印！", desc: "你們小隊成功在二樓禁書區號段收集到英文字母暗號，獲得前往第 4 道試煉的魔法權限！", nextName: "試煉四：期刊架歷史符文密碼" },
+          10: { title: "🎉 成功解開第 4 道魔法封印！", desc: "你們小隊成功在當期與過期期刊區解開 3 大符文密碼，獲得前往終極第 5 道試煉的魔法權限！", nextName: "試煉五：流通櫃台過卡驗證" }
         };
 
         const currentClear = clearInfo[stepIdx];
@@ -369,7 +369,7 @@
       const levelNames = { 1: "試煉一 空間法則", 2: "試煉二 靈魂水晶", 3: "試煉三 禁書號段", 4: "試煉四 歷史符文", 5: "試煉五 櫃台驗證" };
       const currentLName = levelNames[qInfo.catLevel] || `試煉 ${qInfo.catLevel}`;
 
-      document.getElementById('level-badge').textContent = `${currentLName} (${qInfo.levelSubStep}/${qInfo.levelSubTotal}題 | 全場 ${qInfo.stepNumber}/9 題)`;
+      document.getElementById('level-badge').textContent = `${currentLName} (${qInfo.levelSubStep}/${qInfo.levelSubTotal}題 | 全場 ${qInfo.stepNumber}/11 題)`;
       document.getElementById('level-title').textContent = qObj.title || '圖書館試煉關卡';
       document.getElementById('level-question-lbl').textContent = qObj.question || '請輸入解密密碼：';
 

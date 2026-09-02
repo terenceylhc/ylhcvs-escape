@@ -1,12 +1,16 @@
 /**
- * 員林家商圖書館密室逃脫 - 全域通訊與狀態控制核心 (App Core v42.0 - 關卡四擴充至 20 題極致趣味版)
- * 貼紙規則：全數黏貼於圖書【書背索書號標籤處】，同學目視搜尋不需抽取書籍！
- * 根據最新教學需求：
- * 關卡四新增 q_4_16 ~ q_4_20（張飛、老大、大師、飛人、牛人），全庫擴充至 20 題！
+ * 員林家商圖書館密室逃脫 - 全域通訊與狀態控制核心 (App Core v52.0 - 出題數自訂版：3+3+1+3+1=11題)
+ * 出題配置：
+ * 關卡一：3 題 (隨機)
+ * 關卡二：3 題 (隨機)
+ * 關卡三：1 題 (輪替)
+ * 關卡四：3 題 (隨機亂數防抄襲)
+ * 關卡五：1 題 (輪替過卡)
+ * 全場共 11 題！
  */
 
 const DEFAULT_QUESTIONS_POOL = [
-  // ─── 關卡 1：館舍尋蹤與守護法則 (10 題隨機抽 2 題) ───
+  // ─── 關卡 1：館舍尋蹤與守護法則 (10 題隨機抽 3 題) ───
   {
     id: "q_1_1",
     categoryLevel: 1,
@@ -98,7 +102,7 @@ const DEFAULT_QUESTIONS_POOL = [
     question: "請參閱本館介紹，計算：(藝廊樓層 + TEAL教室樓層 + 自主區樓層) × 影音借閱上限部數 ＝ ？"
   },
 
-  // ─── 關卡 2：OPAC 線上檢索 (10 題隨機抽 2 題) ───
+  // ─── 關卡 2：OPAC 線上檢索 (10 題隨機抽 3 題) ───
   {
     id: "q_2_1",
     categoryLevel: 2,
@@ -190,7 +194,7 @@ const DEFAULT_QUESTIONS_POOL = [
     question: "💡 請在 WebOPAC 搜尋《為未來而教》，將【作者姓名】+【出版年份】拼湊成暗號："
   },
 
-  // ─── 關卡 3：二樓書庫尋寶 (11 題選 2 題) ───
+  // ─── 關卡 3：二樓書庫尋寶 (11 題選 1 題) ───
   {
     id: "q_3_1",
     categoryLevel: 3,
@@ -291,7 +295,7 @@ const DEFAULT_QUESTIONS_POOL = [
     question: "🔍 【二樓書庫尋寶】請至 2 樓書庫，根據索書號目視查看以下 4 本圖書【書背標籤處】貼紙字母（請勿拿書）：\n❶ [索書號: 312.83 1703 2025] 《AI繪圖一秒上手》\n❷ [索書號: 312.83 4423 2023] 《ChatGPT與AI繪圖》\n❸ [索書號: 312.83 7547 2023] 《瘋ChatGPT 顛覆未來》\n❹ [索書號: 312.83 4410 2023] 《AI生成時代》\n將收集到的 4 個字母組合英文單字："
   },
 
-  // ─── 關卡 4：當期與過期期刊尋寶 (20 題隨機抽 2 題；隱藏代碼，全數 2 書組合) ───
+  // ─── 關卡 4：當期與過期期刊尋寶 (20 題隨機抽 3 題亂數防抄襲；隱藏代碼，全數 2 書組合) ───
   {
     id: "q_4_1",
     categoryLevel: 4,
@@ -473,7 +477,7 @@ const DEFAULT_QUESTIONS_POOL = [
     question: "📰 請至當期期刊區或過期期刊區，尋找《新小牛頓》與《科學人》，將【新小牛頓第 3 個字】+【科學人第 3 個字】拼湊成密碼："
   },
 
-  // ─── 關卡 5：2 樓流通櫃台 10 本實體圖書獨家過卡題目 (索書號收納於提示中) ───
+  // ─── 關卡 5：2 樓流通櫃台 10 本實體圖書過卡題目 (選 1 題) ───
   {
     id: "q_5_1",
     categoryLevel: 5,
@@ -633,7 +637,7 @@ class GameEngine {
     Object.values(state.teams).forEach(team => {
       team.levelSequence = [1, 2, 3, 4, 5];
 
-      if (!team.assignedQuestionsList || !Array.isArray(team.assignedQuestionsList) || team.assignedQuestionsList.length !== 9 || team.assignedQuestionsList.some(q => !q)) {
+      if (!team.assignedQuestionsList || !Array.isArray(team.assignedQuestionsList) || team.assignedQuestionsList.length !== 11 || team.assignedQuestionsList.some(q => !q)) {
         team.assignedQuestionsList = this.generateQuestionsListForTeam(team.groupNum || 1, state.questions);
       }
       if (typeof team.stepIndex !== 'number') team.stepIndex = 0;
@@ -755,6 +759,15 @@ class GameEngine {
     this.listeners.forEach(cb => cb(this.state));
   }
 
+  /**
+   * 根據最新需求分配各小隊題目：
+   * 關卡 1：3 題 (隨機亂數防抄襲)
+   * 關卡 2：3 題 (隨機亂數防抄襲)
+   * 關卡 3：1 題 (按組別輪替)
+   * 關卡 4：3 題 (隨機亂數防抄襲)
+   * 關卡 5：1 題 (按組別輪替實體書過卡)
+   * 全場共 11 題！
+   */
   generateQuestionsListForTeam(groupNum, questionsPool) {
     let pool = DEFAULT_QUESTIONS_POOL;
     if (Array.isArray(questionsPool) && questionsPool.length > 0) {
@@ -770,29 +783,27 @@ class GameEngine {
     const cat4 = pool.filter(q => q && q.categoryLevel === 4);
     const cat5 = pool.filter(q => q && q.categoryLevel === 5);
 
-    const safeCat1 = cat1.length >= 2 ? cat1 : DEFAULT_QUESTIONS_POOL.filter(q => q.categoryLevel === 1);
-    const safeCat2 = cat2.length >= 2 ? cat2 : DEFAULT_QUESTIONS_POOL.filter(q => q.categoryLevel === 2);
-    const safeCat3 = cat3.length >= 2 ? cat3 : DEFAULT_QUESTIONS_POOL.filter(q => q.categoryLevel === 3);
-    const safeCat4 = cat4.length >= 2 ? cat4 : DEFAULT_QUESTIONS_POOL.filter(q => q.categoryLevel === 4);
+    const safeCat1 = cat1.length >= 3 ? cat1 : DEFAULT_QUESTIONS_POOL.filter(q => q.categoryLevel === 1);
+    const safeCat2 = cat2.length >= 3 ? cat2 : DEFAULT_QUESTIONS_POOL.filter(q => q.categoryLevel === 2);
+    const safeCat3 = cat3.length >= 1 ? cat3 : DEFAULT_QUESTIONS_POOL.filter(q => q.categoryLevel === 3);
+    const safeCat4 = cat4.length >= 3 ? cat4 : DEFAULT_QUESTIONS_POOL.filter(q => q.categoryLevel === 4);
     const safeCat5 = cat5.length >= 1 ? cat5 : DEFAULT_QUESTIONS_POOL.filter(q => q.categoryLevel === 5);
 
     const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
 
-    const qL1 = shuffle(safeCat1).slice(0, 2);
-    const qL2 = shuffle(safeCat2).slice(0, 2);
+    // 關卡 1：隨機抽 3 題
+    const qL1 = shuffle(safeCat1).slice(0, 3);
+    // 關卡 2：隨機抽 3 題
+    const qL2 = shuffle(safeCat2).slice(0, 3);
 
-    const offset3 = ((groupNum - 1) * 2) % (safeCat3.length || 11);
-    const qL3 = [
-      safeCat3[offset3] || safeCat3[0],
-      safeCat3[(offset3 + 1) % safeCat3.length] || safeCat3[1]
-    ];
+    // 關卡 3：抽 1 題 (按組別輪替)
+    const offset3 = (groupNum - 1) % (safeCat3.length || 11);
+    const qL3 = [safeCat3[offset3] || safeCat3[0]];
 
-    const offset4 = ((groupNum - 1) * 2) % (safeCat4.length || 20);
-    const qL4 = [
-      safeCat4[offset4] || safeCat4[0],
-      safeCat4[(offset4 + 1) % safeCat4.length] || safeCat4[1]
-    ];
+    // 關卡 4：隨機抽 3 題 (隨機亂數防抄襲)
+    const qL4 = shuffle(safeCat4).slice(0, 3);
 
+    // 關卡 5：抽 1 題 (按組別輪替過卡)
     const offset5 = (groupNum - 1) % (safeCat5.length || 10);
     const qL5 = [safeCat5[offset5] || safeCat5[0]];
 
@@ -800,7 +811,7 @@ class GameEngine {
 
     const defaultPool = DEFAULT_QUESTIONS_POOL;
     let idx = 0;
-    while (result.length < 9) {
+    while (result.length < 11) {
       result.push(defaultPool[idx % defaultPool.length]);
       idx++;
     }
@@ -891,18 +902,19 @@ class GameEngine {
     let levelSubStep = 1;
     let levelSubTotal = 1;
 
+    // 出題配額：L1(3題), L2(3題), L3(1題), L4(3題), L5(1題) -> 全場共11題
     if (catLevel === 1) {
       levelSubStep = stepIdx + 1;
-      levelSubTotal = 2;
+      levelSubTotal = 3;
     } else if (catLevel === 2) {
-      levelSubStep = stepIdx - 2 + 1;
-      levelSubTotal = 2;
+      levelSubStep = stepIdx - 3 + 1;
+      levelSubTotal = 3;
     } else if (catLevel === 3) {
-      levelSubStep = stepIdx - 4 + 1;
-      levelSubTotal = 2;
+      levelSubStep = 1;
+      levelSubTotal = 1;
     } else if (catLevel === 4) {
-      levelSubStep = stepIdx - 6 + 1;
-      levelSubTotal = 2;
+      levelSubStep = stepIdx - 7 + 1;
+      levelSubTotal = 3;
     } else if (catLevel === 5) {
       levelSubStep = 1;
       levelSubTotal = 1;
@@ -913,7 +925,7 @@ class GameEngine {
     return {
       questionObj: currentQ,
       stepNumber: stepIdx + 1,
-      totalSteps: 9,
+      totalSteps: 11,
       catLevel: catLevel,
       levelSubStep: levelSubStep,
       levelSubTotal: levelSubTotal,
@@ -949,7 +961,7 @@ class GameEngine {
       team.stepIndex = stepIdx + 1;
       team.levelTimes[team.stepIndex] = now;
 
-      if (team.stepIndex >= 9) {
+      if (team.stepIndex >= 11) {
         team.completed = true;
         team.finishTime = now;
       }
