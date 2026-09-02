@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>📺 員家魔法學院 - 大螢幕試煉即時看板</title>
+  <title>📺 員家魔法學院 - 大螢幕試煉即時看板 (方案 A 強制重置版)</title>
   <link rel="stylesheet" href="style.css">
   <!-- Firebase 跨裝置即時通訊庫 -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -208,7 +208,7 @@
         <h3 style="font-size: 1.1rem; color: var(--gold); margin-top: 0; margin-bottom: 0.75rem;">
           📜 試煉即時動態
         </h3>
-        <div id="activity-log" style="font-size: 0.85rem; line-height: 1.6; color: var(--text-muted); max-height: 250px; overflow-y: auto;">
+        <div id="activity-log" style="font-size: 0.85rem; line-height: 1.6; color: var(--text-muted); max-height: 250px; overflow-y. auto;">
           <div>[系統] 魔法學院試煉看板已就緒...</div>
         </div>
       </div>
@@ -349,11 +349,11 @@
       alert("🚀 魔法試煉之門已成功開啟！同學手機現在可以開始答題！");
     });
 
-    // 點擊「重置大會」按鈕 (親和 confirmation 彈窗，無須密碼)
+    // 方案 A 點擊「重置大會」按鈕 (強制抹除歷史舊組別)
     document.getElementById('btn-db-reset').addEventListener('click', () => {
-      if (confirm("⚠️ 確定要重置比賽大會嗎？\n此操作將清空所有已報到小隊資料與闖關進度，恢復全新大會狀態！")) {
+      if (confirm("⚠️ 確定要重置比賽大會嗎？\n此操作將發送【方案 A 強制廣播】，100% 徹底清空大螢幕與所有連線設備中的舊組別（如味全龍、本機隊等）！")) {
         window.gameEngine.resetGame();
-        alert("已成功重置比賽大會！看板已恢復全新空白狀態。");
+        alert("已成功清空並重置大會！大螢幕已恢復 100% 全新空白狀態！");
       }
     });
 

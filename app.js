@@ -1,10 +1,9 @@
 /**
- * 員林家商圖書館密室逃脫 - 全域通訊與狀態控制核心 (App Core v56.0 - 經典穩定原版：單場次高穩定版)
- * 特色說明：
- * 1. 恢復經典直覺單場次版本，全班統一登錄
- * 2. 重置大會採親和 Confirm 二次確認 (免輸入 280282 密碼)
+ * 員林家商圖書館密室逃脫 - 全域通訊與狀態控制核心 (App Core v57.0 - 方案 A 強制廣播重置與舊組別徹底清空版)
+ * 特點說明：
+ * 1. 實作【方案 A】：當老師在大螢幕按下「重置大會」，發送強制清空指令給 Firebase 與所有設備。
+ * 2. 徹底解決歷史舊組別 (味全龍、本機隊...) 殘留或死而復生問題！
  * 3. 各小隊配置 11 題 (關1:3題, 關2:3題, 關3:1題, 關4:3題隨機防抄, 關5:1題過卡)
- * 4. 完美融合員家魔法學院主題世界觀
  */
 
 const DEFAULT_QUESTIONS_POOL = [
@@ -593,7 +592,8 @@ const DEFAULT_STATE = {
   winningQuota: 3,
   startTime: null,
   questions: DEFAULT_QUESTIONS_POOL,
-  teams: {}
+  teams: {},
+  resetTimestamp: Date.now()
 };
 
 class GameEngine {
@@ -631,6 +631,7 @@ class GameEngine {
     }
     if (!state.status) state.status = 'setup';
     if (!state.winningQuota) state.winningQuota = 3;
+    if (!state.resetTimestamp) state.resetTimestamp = 0;
 
     Object.values(state.teams).forEach(team => {
       team.levelSequence = [1, 2, 3, 4, 5];
@@ -646,13 +647,23 @@ class GameEngine {
     return state;
   }
 
+  // 方案 A：強化版合併邏輯，當接收到重置（resetTimestamp 更新或 teams 歸零）時，100% 抹除舊快取的歷史小隊！
   mergeState(incomingState) {
     if (!incomingState) return;
     const sanitized = this.sanitizeState(incomingState);
     
-    // 原版穩定合併邏輯：保留所有線上隊伍
+    const incomingResetTime = sanitized.resetTimestamp || 0;
+    const localResetTime = (this.state && this.state.resetTimestamp) || 0;
+
+    // 如果傳入的狀態屬於重置操作（resetTimestamp 較新，或狀態為 setup 且 teams 為空）
+    if (incomingResetTime > localResetTime || (sanitized.status === 'setup' && Object.keys(sanitized.teams || {}).length === 0)) {
+      this.state = sanitized;
+      return;
+    }
+
+    // 普通動態合併
     const mergedTeams = { ...(sanitized.teams || {}) };
-    if (this.state && this.state.teams) {
+    if (this.state && this.state.teams && this.state.status !== 'setup') {
       Object.keys(this.state.teams).forEach(tid => {
         if (!mergedTeams[tid]) {
           mergedTeams[tid] = this.state.teams[tid];
@@ -697,11 +708,11 @@ class GameEngine {
         this.notifyListeners();
       });
 
-      this.firebaseDb.ref('ylhcvs_game_state').on('value', (snapshot) => {
+      this.firebaseDb.ref('ylhcvs_game_state_a').on('value', (snapshot) => {
         const val = snapshot.val();
         if (val) {
           this.mergeState(val);
-          localStorage.setItem('ylhcvs_escape_state', JSON.stringify(this.state));
+          localStorage.setItem('ylhcvs_escape_state_a', JSON.stringify(this.state));
           this.notifyListeners();
         }
       }, (error) => {
@@ -718,7 +729,7 @@ class GameEngine {
   }
 
   loadState() {
-    const saved = localStorage.getItem('ylhcvs_escape_state');
+    const saved = localStorage.getItem('ylhcvs_escape_state_a');
     if (saved) {
       try { 
         return this.sanitizeState(JSON.parse(saved)); 
@@ -729,12 +740,12 @@ class GameEngine {
 
   saveState() {
     this.state = this.sanitizeState(this.state);
-    localStorage.setItem('ylhcvs_escape_state', JSON.stringify(this.state));
+    localStorage.setItem('ylhcvs_escape_state_a', JSON.stringify(this.state));
     this.channel.postMessage({ type: 'STATE_UPDATE', state: this.state });
     
     if (this.firebaseDb) {
       const cleanData = this.cleanObjectForFirebase(this.state);
-      this.firebaseDb.ref('ylhcvs_game_state').set(cleanData).then(() => {
+      this.firebaseDb.ref('ylhcvs_game_state_a').set(cleanData).then(() => {
         this.firebaseStatus = "CONNECTED";
         this.firebaseError = null;
       }).catch(err => {
@@ -853,10 +864,13 @@ class GameEngine {
     this.saveState();
   }
 
+  // 方案 A 關鍵重置：更新 resetTimestamp，讓雲端與所有線上手機一律清空舊組別！
   resetGame() {
+    const now = Date.now();
     this.state.status = 'setup';
     this.state.startTime = null;
     this.state.teams = {};
+    this.state.resetTimestamp = now;
     this.saveState();
   }
 

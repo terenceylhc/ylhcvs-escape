@@ -424,7 +424,6 @@
       renderStudentUI(window.gameEngine.state);
     });
 
-    // 點擊過場卡「前往下一關」
     document.getElementById('btn-next-level').addEventListener('click', () => {
       if (!currentTeamId) return;
       const team = window.gameEngine.state.teams[currentTeamId];
@@ -434,7 +433,6 @@
       renderStudentUI(window.gameEngine.state);
     });
 
-    // 點擊關卡指南「我知道了，開始答題！」
     document.getElementById('btn-start-level-questions').addEventListener('click', () => {
       if (!currentTeamId) return;
       const qInfo = window.gameEngine.getCurrentQuestionForTeam(currentTeamId);
