@@ -3,210 +3,177 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>📺 員家圖書館密室逃脫 - 主控大螢幕即時排行榜</title>
+  <title>📺 員家魔法學院 - 大螢幕試煉即時看板</title>
   <link rel="stylesheet" href="style.css">
-  <!-- Canvas Confetti 彩帶特效庫 -->
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-  <!-- QRCode.js 免費線上庫 -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <!-- Firebase 跨裝置即時通訊庫 -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="firebase-config.js"></script>
   <style>
-    .modal-overlay {
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(15, 23, 42, 0.85);
-      backdrop-filter: blur(8px);
-      display: flex; align-items: center; justify-content: center;
-      z-index: 1000;
-      opacity: 0; pointer-events: none; transition: opacity 0.3s;
+    body {
+      background: radial-gradient(circle at center, #1e1b4b 0%, #0f172a 100%);
+      color: #e2e8f0;
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
     }
-    .modal-overlay.active { opacity: 1; pointer-events: auto; }
-    .modal-content {
-      background: var(--card-dark); border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 16px; width: 95%; max-width: 1050px; max-height: 85vh;
-      padding: 1.5rem; overflow-y: auto; box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+    .db-header {
+      background: rgba(15, 23, 42, 0.85);
+      border-bottom: 2px solid var(--gold);
+      padding: 1.2rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      backdrop-filter: blur(10px);
+    }
+    .db-title {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: var(--gold);
+      text-shadow: 0 0 15px rgba(251, 191, 36, 0.4);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .db-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 1.5rem;
+      padding: 1.5rem 2rem;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+    @media (max-width: 1024px) {
+      .db-grid { grid-template-columns: 1fr; }
+    }
+    .db-card {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 1.5rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+    .rank-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 0.5rem;
+    }
+    .rank-table th {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      padding: 0.5rem 1rem;
+      text-align: left;
+    }
+    .rank-row {
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 8px;
+      transition: all 0.3s;
+    }
+    .rank-row td {
+      padding: 1rem;
+      font-size: 1rem;
+    }
+    .rank-row.rank-1 {
+      background: linear-gradient(90deg, rgba(251, 191, 36, 0.2), rgba(15, 23, 42, 0.5));
+      border-left: 4px solid var(--gold);
+    }
+    .progress-bar-bg {
+      background: rgba(255, 255, 255, 0.1);
+      height: 12px;
+      border-radius: 6px;
+      overflow: hidden;
+      position: relative;
+    }
+    .progress-bar-fill {
+      background: linear-gradient(90deg, #7e22ce, var(--gold));
+      height: 100%;
+      border-radius: 6px;
+      transition: width 0.5s ease-out;
+    }
+    .timer-display {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--gold);
+      text-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
     }
   </style>
 </head>
 <body>
-  <!-- 頂部一體化導航條 -->
-  <nav class="navbar">
-    <div class="brand">
-      <span>🏫 國立員林家商圖書館</span>
-      <span style="opacity: 0.5;">|</span>
-      <span>密室逃脫《失落的智慧金鑰》主控大螢幕</span>
+  <!-- 頂部標頭 -->
+  <header class="db-header">
+    <div class="db-title">
+      <span>✨ 員家魔法學院</span>
+      <span style="font-size: 1.1rem; color: #a5b4fc; font-weight: 400;">| 圖書館智慧金鑰試煉大會</span>
     </div>
-    
-    <!-- 右側教師控制區域 -->
-    <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
-      <div id="fb-status-badge" onclick="checkFbStatusAlert()" style="font-size:0.8rem; padding:0.3rem 0.6rem; border-radius:20px; background:rgba(255,255,255,0.1); cursor:pointer;">
-        ☁️ 載入連線狀態...
+    <div style="display: flex; align-items: center; gap: 2rem;">
+      <div id="game-status-badge" class="badge-tag badge-gold" style="font-size: 1rem; padding: 0.4rem 1rem;">
+        🔮 試煉籌備中...
       </div>
-
-      <label style="font-size: 0.85rem; color: var(--text-muted);">獲勝名額：</label>
-      <select id="select-winning-quota" class="input-field" style="width: auto; margin: 0; padding: 0.4rem 0.8rem; font-size: 0.9rem;">
-        <option value="1">前 1 名</option>
-        <option value="2">前 2 名</option>
-        <option value="3" selected>前 3 名</option>
-        <option value="4">前 4 名</option>
-        <option value="5">前 5 名</option>
-      </select>
-
-      <button id="btn-start-game" class="btn btn-success" style="width: auto; padding: 0.4rem 1rem; font-size: 0.9rem;">
-        🚀 開始遊戲
-      </button>
-
-      <button id="btn-reset-game" class="btn btn-danger" style="width: auto; padding: 0.4rem 1rem; font-size: 0.9rem;">
-        🧹 清空報到資料庫
-      </button>
-
-      <button id="btn-open-qbank" class="btn" style="width: auto; padding: 0.4rem 1rem; font-size: 0.9rem; background: #334155; color: #fff;">
-        🔒 題庫管理 (後台)
-      </button>
+      <div id="game-timer" class="timer-display">00:00</div>
     </div>
-  </nav>
+  </header>
 
-  <div class="dashboard-container">
-    
-    <!-- 頂部即時數據統計卡 -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-size: 0.85rem; color: var(--text-muted);">👥 已報到組數</span>
-          <span style="font-size: 1.5rem;">📱</span>
-        </div>
-        <div id="stat-registered-count" style="font-size: 2rem; font-weight: 800; color: var(--secondary); margin-top: 0.25rem;">
-          0
-        </div>
+  <!-- 數據監控網格 -->
+  <div class="db-grid">
+    <!-- 主區域：小隊即時解鎖進度排行榜 -->
+    <div class="db-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2 style="font-size: 1.3rem; color: var(--gold); margin: 0;">
+          🏆 各小隊解鎖試煉排行榜
+        </h2>
+        <span id="registered-teams-count" style="font-size: 0.9rem; color: var(--text-muted);">
+          已簽署契約小隊：0 組
+        </span>
       </div>
 
-      <div class="stat-card">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-size: 0.85rem; color: var(--text-muted);">🏆 獲勝名額</span>
-          <span style="font-size: 1.5rem;">👑</span>
-        </div>
-        <div id="stat-winning-quota" style="font-size: 2rem; font-weight: 800; color: var(--gold); margin-top: 0.25rem;">
-          前 3 名
-        </div>
-      </div>
-
-      <div class="stat-card">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-size: 0.85rem; color: var(--text-muted);">🎉 通關組數</span>
-          <span style="font-size: 1.5rem;">🔑</span>
-        </div>
-        <div id="stat-completed-teams" style="font-size: 2rem; font-weight: 800; color: var(--success); margin-top: 0.25rem;">
-          0
-        </div>
-      </div>
-
-      <div class="stat-card">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-size: 0.85rem; color: var(--text-muted);">⏱️ 全場總計時</span>
-          <span style="font-size: 1.5rem;">⏳</span>
-        </div>
-        <div id="stat-game-timer" style="font-size: 2rem; font-weight: 800; color: var(--gold); font-family: monospace; margin-top: 0.25rem;">
-          00:00
-        </div>
-      </div>
+      <table class="rank-table">
+        <thead>
+          <tr>
+            <th style="width: 10%;">名次</th>
+            <th style="width: 25%;">小隊名稱</th>
+            <th style="width: 45%;">5 大魔法試煉總進度 (9 題)</th>
+            <th style="width: 20%;">狀態 / 耗時</th>
+          </tr>
+        </thead>
+        <tbody id="leaderboard-tbody">
+          <!-- 動態渲染排行榜 -->
+        </tbody>
+      </table>
     </div>
 
-    <!-- 下方主要區域：左側 QR Code 入口 + 右側即時排行榜 -->
-    <div style="display: grid; grid-template-columns: 280px 1fr; gap: 1.5rem;">
-      
-      <!-- 左側：學生入場 QR Code -->
-      <div class="card" style="text-align: center; height: fit-content;">
-        <h3 style="font-size: 1.1rem; color: var(--gold); margin-bottom: 0.25rem;">📱 學生掃碼入場</h3>
-        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
-          請使用手機相機掃描下方 QR Code 填寫隊名報到：
-        </p>
+    <!-- 側邊欄：導師控制台與實時活動紀錄 -->
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+      <div class="db-card">
+        <h3 style="font-size: 1.1rem; color: var(--gold); margin-top: 0; margin-bottom: 1rem;">
+          🔮 試煉導師控制台
+        </h3>
 
-        <div id="qrcode-box" style="background: white; padding: 0.75rem; border-radius: 12px; display: inline-block; margin-bottom: 1rem;"></div>
-
-        <div style="font-size: 0.75rem; color: var(--text-muted); word-break: break-all; margin-bottom: 1rem;">
-          學生端網址：<br>
-          <a id="student-url-display" href="#" target="_blank" style="color: var(--secondary); text-decoration: underline;">載入中...</a>
+        <div style="margin-bottom: 1rem;">
+          <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 0.4rem;">
+            獲勝名額設定（錄取前幾名）：
+          </label>
+          <input type="number" id="db-quota-input" class="input-field" value="3" min="1" max="10" style="width: 100px;">
         </div>
 
-        <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.75rem; text-align: left;">
-          <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-light); margin-bottom: 0.5rem;">
-            📋 已進入等待區隊伍：
-          </div>
-          <div id="registered-teams-list" style="max-height: 180px; overflow-y: auto; font-size: 0.82rem;">
-            <!-- 動態載入隊伍 -->
-          </div>
-        </div>
-      </div>
-
-      <!-- 右側：大螢幕即時排行榜 -->
-      <div class="card">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-          <h2 style="font-size: 1.3rem; color: var(--gold);">
-            🏆 密室逃脫《失落的智慧金鑰》實時名次排行榜
-          </h2>
-          <span id="stat-status-badge" class="badge-tag badge-warning" style="font-size: 0.9rem;">
-            ⏳ 等待學生報到與開賽
-          </span>
-        </div>
-
-        <table class="leaderboard-table">
-          <thead>
-            <tr>
-              <th style="width: 80px;">名次</th>
-              <th>隊伍名稱 / 成員</th>
-              <th>當前挑戰地點</th>
-              <th>解謎總進度 (9 題)</th>
-              <th style="text-align: right;">比賽耗時</th>
-            </tr>
-          </thead>
-          <tbody id="leaderboard-body">
-            <!-- 動態載入排行榜 -->
-          </tbody>
-        </table>
-      </div>
-
-    </div>
-
-  </div>
-
-  <!-- 後台題庫管理彈窗 Modal -->
-  <div id="qbank-modal" class="modal-overlay">
-    <div class="modal-content">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.75rem;">
-        <h2 style="font-size: 1.3rem; color: var(--gold);">🔒 題庫線上管理後台 (共 47 題大題庫)</h2>
-        <div>
-          <button id="btn-reset-qbank-default" class="btn" style="background: #e11d48; color: white; padding: 0.4rem 0.8rem; font-size: 0.85rem; margin-right: 0.5rem;">
-            🔄 強制載入最新預設題庫
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <button id="btn-db-start" class="btn btn-success" style="font-size: 1rem; padding: 0.8rem;">
+            🚀 開啟試煉門
           </button>
-          <button id="btn-close-qbank" class="btn" style="background: #475569; color: white; padding: 0.4rem 0.8rem; font-size: 0.85rem;">
-            ✖ 關閉
+          <button id="btn-db-reset" class="btn btn-danger" style="font-size: 0.9rem; padding: 0.8rem;">
+            🔄 重置大會
           </button>
         </div>
       </div>
 
-      <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-        <label style="font-size: 0.9rem; font-weight: 600;">篩選關卡類別：</label>
-        <select id="filter-cat-select" class="input-field" style="width: auto; padding: 0.4rem;">
-          <option value="all">全部關卡 (1~5)</option>
-          <option value="1">關卡一：館舍尋蹤 (10題)</option>
-          <option value="2">關卡二：OPAC檢索 (10題)</option>
-          <option value="3">關卡三：二樓書庫 (12題)</option>
-          <option value="5">關卡五：流通櫃台 (10題)</option>
-        </select>
-        <span style="font-size: 0.8rem; color: var(--text-muted);">編輯完成後請點擊右下角【💾 儲存並發布題庫】即可同步生效！</span>
-      </div>
-
-      <div id="qbank-list-container" style="max-height: 55vh; overflow-y: auto; padding-right: 0.5rem;">
-        <!-- 動態載入題庫編輯表單 -->
-      </div>
-
-      <div style="margin-top: 1.25rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem; text-align: right;">
-        <button id="btn-save-qbank" class="btn btn-success" style="padding: 0.75rem 1.5rem; font-size: 1rem;">
-          💾 儲存並發布題庫
-        </button>
+      <!-- 活動日誌 -->
+      <div class="db-card" style="flex: 1;">
+        <h3 style="font-size: 1.1rem; color: var(--gold); margin-top: 0; margin-bottom: 0.75rem;">
+          📜 試煉即時動態
+        </h3>
+        <div id="activity-log" style="font-size: 0.85rem; line-height: 1.6; color: var(--text-muted); max-height: 350px; overflow-y: auto;">
+          <div>[系統] 魔法學院試煉看板已就緒...</div>
+        </div>
       </div>
     </div>
   </div>
@@ -214,333 +181,125 @@
   <script src="app.js"></script>
   <script>
     let timerInterval = null;
-    let hasFiredConfetti = false;
 
-    function getStudentUrl() {
-      const currentUrl = window.location.href;
-      const baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/'));
-      return `${baseUrl}/student.html`;
-    }
-
-    function renderQrCode() {
-      try {
-        const studentUrl = getStudentUrl();
-        const displayEl = document.getElementById('student-url-display');
-        if (displayEl) {
-          displayEl.href = studentUrl;
-          displayEl.textContent = studentUrl;
-        }
-
-        const container = document.getElementById('qrcode-box');
-        if (container) {
-          container.innerHTML = '';
-          new QRCode(container, {
-            text: studentUrl,
-            width: 170,
-            height: 170,
-            colorDark : "#000000",
-            colorLight : "#ffffff",
-            correctLevel : QRCode.CorrectLevel.H
-          });
-        }
-      } catch (err) {
-        console.warn("QR Code 繪製提示：", err);
+    function updateTimerDisplay(startTime) {
+      if (!startTime) {
+        document.getElementById('game-timer').textContent = "00:00";
+        return;
       }
-    }
-
-    function formatTime(ms) {
-      if (!ms || ms < 0) return "00:00";
-      const totalSec = Math.floor(ms / 1000);
-      const mins = Math.floor(totalSec / 60).toString().padStart(2, '0');
-      const secs = (totalSec % 60).toString().padStart(2, '0');
-      return `${mins}:${secs}`;
-    }
-
-    function updateFirebaseStatusBadge() {
-      const badge = document.getElementById('fb-status-badge');
-      if (!badge) return;
-      const status = window.gameEngine.firebaseStatus;
-      const error = window.gameEngine.firebaseError;
-
-      if (status === "CONNECTED") {
-        badge.style.background = "rgba(16, 185, 129, 0.2)";
-        badge.style.color = "#34d399";
-        badge.style.border = "1px solid #10b981";
-        badge.innerHTML = "🟢 跨裝置 Firebase 雲端連線正常";
-      } else {
-        badge.style.background = "rgba(239, 68, 68, 0.2)";
-        badge.style.color = "#f87171";
-        badge.style.border = "1px solid #ef4444";
-        badge.innerHTML = "🔴 跨裝置未連線 (點此查看排查教學)";
-      }
-    }
-
-    function checkFbStatusAlert() {
-      const status = window.gameEngine.firebaseStatus;
-      const error = window.gameEngine.firebaseError;
-
-      if (status === "CONNECTED") {
-        alert("✅ 跨裝置 Firebase 雲端連線非常健康！全校手機與大螢幕皆能即時同步！");
-      } else {
-        alert(`🔴【跨裝置連線未開啟排查指南】\n目前原因：${error || '未連線'}\n\n請依序檢查以下 3 個步驟：\n1. 開啟 Firebase 控制台 (https://console.firebase.google.com/)\n2. 點擊左側 Realtime Database ➔ 務必點擊【建立資料庫】藍色按鈕！\n3. 於 Rules 分頁將規則設為 ".read": true, ".write": true 並點擊「發布」！\n4. 將最新程式碼 Push 發布至 GitHub Pages！`);
-      }
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
+      const secs = String(elapsed % 60).padStart(2, '0');
+      document.getElementById('game-timer').textContent = `${mins}:${secs}`;
     }
 
     function renderDashboard(state) {
-      if (!state || !state.teams) return;
+      const tbody = document.getElementById('leaderboard-tbody');
+      const teamsCount = document.getElementById('registered-teams-count');
+      const statusBadge = document.getElementById('game-status-badge');
+      const quotaInput = document.getElementById('db-quota-input');
 
-      updateFirebaseStatusBadge();
+      quotaInput.value = state.winningQuota || 3;
 
-      const teams = Object.values(state.teams);
-      
-      const regCountEl = document.getElementById('stat-registered-count');
-      if (regCountEl) regCountEl.textContent = teams.length;
-
-      const winQuotaEl = document.getElementById('stat-winning-quota');
-      if (winQuotaEl) winQuotaEl.textContent = `前 ${state.winningQuota || 3} 名`;
-
-      const selectQuotaEl = document.getElementById('select-winning-quota');
-      if (selectQuotaEl) selectQuotaEl.value = state.winningQuota || 3;
-
-      const badgeText = document.getElementById('stat-status-badge');
-      if (badgeText) {
-        if (state.status === 'playing') {
-          badgeText.textContent = '🚀 比賽進行中';
-          badgeText.style.color = 'var(--success)';
-        } else {
-          badgeText.textContent = '⏳ 等待學生報到與開賽';
-          badgeText.style.color = 'var(--secondary)';
+      if (state.status === 'playing') {
+        statusBadge.textContent = "🔮 魔法試煉進行中...";
+        statusBadge.className = "badge-tag badge-gold";
+        if (!timerInterval && state.startTime) {
+          timerInterval = setInterval(() => updateTimerDisplay(state.startTime), 1000);
         }
-      }
-
-      const regList = document.getElementById('registered-teams-list');
-      if (regList) {
-        if (teams.length === 0) {
-          regList.innerHTML = `<div style="color: var(--text-muted); text-align: center; padding: 1rem;">等待學生掃碼進場中...</div>`;
-        } else {
-          regList.innerHTML = teams.map(t => `
-            <div style="padding: 0.4rem 0.6rem; background: rgba(255,255,255,0.05); margin-bottom: 0.4rem; border-radius: 6px; display: flex; justify-content: space-between;">
-              <span style="font-weight: 700; color: var(--gold);">【第 ${t.groupNum || '?'} 組】</span>
-              <span>${t.name || '未命名'}</span>
-            </div>
-          `).join('');
+      } else {
+        statusBadge.textContent = "⏳ 魔法陣準備中...";
+        statusBadge.className = "badge-tag";
+        if (timerInterval) {
+          clearInterval(timerInterval);
+          timerInterval = null;
         }
+        updateTimerDisplay(null);
       }
 
       const sortedTeams = window.gameEngine.getSortedLeaderboard();
-      const completedCount = sortedTeams.filter(t => t.completed).length;
-      
-      const compCountEl = document.getElementById('stat-completed-teams');
-      if (compCountEl) compCountEl.textContent = completedCount;
-
-      if (completedCount >= (state.winningQuota || 3) && !hasFiredConfetti && state.status === 'playing') {
-        hasFiredConfetti = true;
-        confetti({ particleCount: 180, spread: 90, origin: { y: 0.6 } });
-      }
-
-      const tbody = document.getElementById('leaderboard-body');
-      if (!tbody) return;
-      tbody.innerHTML = '';
+      teamsCount.textContent = `已簽署契約小隊：${sortedTeams.length} 組`;
 
       if (sortedTeams.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:2rem;">尚無隊伍報到，請掃描左側 QR Code 開始報到！</td></tr>`;
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="4" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+              目前尚無小隊簽署契約，請學生掃描 QR Code 或輸入網址報到...
+            </td>
+          </tr>
+        `;
         return;
       }
 
-      sortedTeams.forEach((team, index) => {
-        const rank = index + 1;
-        const isWinner = rank <= (state.winningQuota || 3) && team.completed;
-        const tr = document.createElement('tr');
-        tr.className = `leaderboard-row ${isWinner ? 'row-winner' : ''}`;
-
-        let rankHtml = `<div class="rank-badge">${rank}</div>`;
-        if (rank === 1) rankHtml = `<div class="rank-badge rank-1">1</div>`;
-        else if (rank === 2) rankHtml = `<div class="rank-badge rank-2">2</div>`;
-        else if (rank === 3) rankHtml = `<div class="rank-badge rank-3">3</div>`;
-
-        let timeStr = "--:--";
-        if (team.startTime && state.status === 'playing') {
-          const endTime = team.finishTime || Date.now();
-          timeStr = formatTime(endTime - team.startTime);
-        } else if (team.completed && team.finishTime && team.startTime) {
-          timeStr = formatTime(team.finishTime - team.startTime);
-        }
-
+      let html = '';
+      sortedTeams.forEach((team, idx) => {
+        const rank = idx + 1;
         const stepIdx = typeof team.stepIndex === 'number' ? team.stepIndex : 0;
-        const progressPct = team.completed ? 100 : Math.min(100, Math.round((stepIdx / 9) * 100));
+        const percent = Math.min(100, Math.round((stepIdx / 9) * 100));
 
-        let locationText = "⏳ 等待開賽";
-        if (state.status === 'playing') {
-          if (!team.completed) {
-            const qInfo = window.gameEngine.getCurrentQuestionForTeam(team.id);
-            if (qInfo && qInfo.questionObj) {
-              const qObj = qInfo.questionObj;
-              const locName = qObj.location ? qObj.location.split(' ')[0] : '圖書館';
-              locationText = `📍 ${locName} (第${qInfo.stepNumber}/9題)`;
-            }
-          } else if (team.completed) {
-            locationText = "🏆 終點通關";
-          }
+        let rankBadge = `第 ${rank} 名`;
+        if (rank === 1) rankBadge = '🥇 第 1 名';
+        else if (rank === 2) rankBadge = '🥈 第 2 名';
+        else if (rank === 3) rankBadge = '🥉 第 3 名';
+
+        let statusTxt = `解答中 (${stepIdx}/9題)`;
+        let rowClass = 'rank-row';
+        if (rank === 1) rowClass += ' rank-1';
+
+        if (team.completed) {
+          const sec = Math.floor((team.finishTime - team.startTime) / 1000);
+          const mins = Math.floor(sec / 60);
+          const secs = sec % 60;
+          statusTxt = `👑 通關 (${mins}分${secs}秒)`;
         }
 
-        tr.innerHTML = `
-          <td>${rankHtml}</td>
-          <td>
-            <div style="font-weight: 700; font-size: 1.05rem; color: #fff;">
-              <span style="color: var(--gold);">【第 ${team.groupNum || '?'} 組】</span> ${team.name || '未命名'}
-            </div>
-            <div style="font-size: 0.75rem; color: var(--text-muted);">${team.members || '組員未填寫'}</div>
-          </td>
-          <td style="font-size: 0.85rem; font-weight: 600; color: var(--secondary);">${locationText}</td>
-          <td>
-            <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted); margin-bottom:0.25rem;">
-              <span>解謎進度: ${team.completed ? 9 : stepIdx} / 9 題</span>
-              <span>${progressPct}%</span>
-            </div>
-            <div class="progress-bar-bg">
-              <div class="progress-bar-fill" style="width: ${progressPct}%;"></div>
-            </div>
-          </td>
-          <td style="text-align: right; font-weight: 800; font-family: monospace; font-size: 1.1rem; color: var(--gold);">
-            ${timeStr}
-          </td>
+        html += `
+          <tr class="${rowClass}">
+            <td style="font-weight: 700; color: var(--gold);">${rankBadge}</td>
+            <td>
+              <div style="font-weight: 700;">第 ${team.groupNum} 組 - ${team.name}</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">${team.members || '組員未填寫'}</div>
+            </td>
+            <td>
+              <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.3rem;">
+                <span>封印進度：${stepIdx} / 9 題</span>
+                <span>${percent}%</span>
+              </div>
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill" style="width: ${percent}%;"></div>
+              </div>
+            </td>
+            <td style="font-weight: 700; color: ${team.completed ? 'var(--success)' : 'var(--text-light)'};">
+              ${statusTxt}
+            </td>
+          </tr>
         `;
-        tbody.appendChild(tr);
       });
+
+      tbody.innerHTML = html;
     }
 
-    function startTimerLoop() {
-      if (timerInterval) clearInterval(timerInterval);
-      timerInterval = setInterval(() => {
-        const state = window.gameEngine.state;
-        if (state && state.status === 'playing' && state.startTime) {
-          const elapsed = Date.now() - state.startTime;
-          document.getElementById('stat-game-timer').textContent = formatTime(elapsed);
-          renderDashboard(state);
-        } else {
-          document.getElementById('stat-game-timer').textContent = "00:00";
-        }
-      }, 1000);
-    }
-
-    document.getElementById('select-winning-quota').addEventListener('change', (e) => {
-      window.gameEngine.setWinningQuota(e.target.value);
-    });
-
-    document.getElementById('btn-start-game').addEventListener('click', () => {
+    document.getElementById('btn-db-start').addEventListener('click', () => {
       window.gameEngine.startGame();
-      alert('🚀 密室逃脫已正式開始！學生手機畫面已同步跳轉開放解謎！');
     });
 
-    document.getElementById('btn-reset-game').addEventListener('click', () => {
-      if (confirm('⚠️ 確定要【清空報到資料庫】嗎？這將清除目前所有已進場的隊伍紀錄，恢復為 0 組。')) {
-        hasFiredConfetti = false;
+    document.getElementById('btn-db-reset').addEventListener('click', () => {
+      const pwd = prompt("🔐 請輸入管理員導師密碼以重置試煉：");
+      if (window.gameEngine.verifyAdminPassword(pwd)) {
         window.gameEngine.resetGame();
-        alert('🧹 已成功清空資料庫與報到紀錄！');
+        alert("已成功重置魔法試煉！");
+      } else if (pwd !== null) {
+        alert("密碼不正確！");
       }
     });
 
-    const modal = document.getElementById('qbank-modal');
-    document.getElementById('btn-open-qbank').addEventListener('click', () => {
-      const inputPwd = prompt("🔑 請輸入後台管理密碼：");
-      if (window.gameEngine.verifyAdminPassword(inputPwd)) {
-        renderQBankEditor(window.gameEngine.state.questions || []);
-        modal.classList.add('active');
-      } else {
-        alert("❌ 密碼錯誤，無法開啟後台題庫管理！");
-      }
-    });
-
-    document.getElementById('btn-close-qbank').addEventListener('click', () => {
-      modal.classList.remove('active');
-    });
-
-    document.getElementById('btn-reset-qbank-default').addEventListener('click', () => {
-      if (confirm('⚠️ 確定要【強制載入最新預設題庫】嗎？這將載入最新的 47 題校正題庫並覆蓋快取。')) {
-        window.gameEngine.updateQuestions(DEFAULT_QUESTIONS_POOL);
-        renderQBankEditor(window.gameEngine.state.questions);
-        alert('🔄 已成功強刷載入最新預設題庫！');
-      }
-    });
-
-    function renderQBankEditor(questions) {
-      const container = document.getElementById('qbank-list-container');
-      const filterCat = document.getElementById('filter-cat-select').value;
-      container.innerHTML = '';
-
-      let filtered = questions;
-      if (filterCat !== 'all') {
-        filtered = questions.filter(q => String(q.categoryLevel || 1) === filterCat);
-      }
-
-      filtered.forEach((q, idx) => {
-        const itemDiv = document.createElement('div');
-        itemDiv.style.background = "rgba(255,255,255,0.03)";
-        itemDiv.style.border = "1px solid rgba(255,255,255,0.08)";
-        itemDiv.style.borderRadius = "8px";
-        itemDiv.style.padding = "1rem";
-        itemDiv.style.marginBottom = "0.75rem";
-
-        const answersStr = Array.isArray(q.answer) ? q.answer.join(', ') : q.answer;
-
-        itemDiv.innerHTML = `
-          <div style="display:flex; justify-content:space-between; font-weight:700; color:var(--gold); margin-bottom:0.5rem;">
-            <span>ID: ${q.id} (關卡 ${q.categoryLevel})</span>
-            <span>地點: ${q.location}</span>
-          </div>
-          <div style="margin-bottom:0.5rem;">
-            <label style="font-size:0.8rem; color:var(--text-muted);">題目標題 / 描述：</label>
-            <input type="text" class="input-field q-title" data-id="${q.id}" value="${q.title || ''}" style="margin-bottom:0.4rem;">
-            <textarea class="input-field q-text" data-id="${q.id}" rows="2" style="font-size:0.88rem;">${q.question || ''}</textarea>
-          </div>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
-            <div>
-              <label style="font-size:0.8rem; color:var(--text-muted);">正確解答 (多解以逗號隔開)：</label>
-              <input type="text" class="input-field q-ans" data-id="${q.id}" value="${answersStr}">
-            </div>
-            <div>
-              <label style="font-size:0.8rem; color:var(--text-muted);">求救提示 (答錯2次後解鎖)：</label>
-              <input type="text" class="input-field q-hint" data-id="${q.id}" value="${q.hint || ''}">
-            </div>
-          </div>
-        `;
-        container.appendChild(itemDiv);
-      });
-    }
-
-    document.getElementById('filter-cat-select').addEventListener('change', () => {
-      renderQBankEditor(window.gameEngine.state.questions || []);
-    });
-
-    document.getElementById('btn-save-qbank').addEventListener('click', () => {
-      const qList = JSON.parse(JSON.stringify(window.gameEngine.state.questions || []));
-      
-      qList.forEach(q => {
-        const titleEl = document.querySelector(`.q-title[data-id="${q.id}"]`);
-        const textEl = document.querySelector(`.q-text[data-id="${q.id}"]`);
-        const ansEl = document.querySelector(`.q-ans[data-id="${q.id}"]`);
-        const hintEl = document.querySelector(`.q-hint[data-id="${q.id}"]`);
-
-        if (titleEl) q.title = titleEl.value;
-        if (textEl) q.question = textEl.value;
-        if (hintEl) q.hint = hintEl.value;
-        if (ansEl) {
-          const val = ansEl.value;
-          q.answer = val.includes(',') ? val.split(',').map(s => s.trim()) : val.trim();
-        }
-      });
-
-      window.gameEngine.updateQuestions(qList);
-      alert('💾 題庫修改成功！已儲存寫入全域狀態。');
-      modal.classList.remove('active');
+    document.getElementById('db-quota-input').addEventListener('change', (e) => {
+      window.gameEngine.setWinningQuota(e.target.value);
     });
 
     window.gameEngine.subscribe((state) => {
       renderDashboard(state);
     });
-
-    renderQrCode();
-    startTimerLoop();
   </script>
 </body>
 </html>

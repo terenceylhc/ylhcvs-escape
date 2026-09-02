@@ -3,32 +3,337 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🏫 國立員林家商圖書館 - 密室逃脫控制台入口</title>
+  <title>✨ 員家魔法學院：圖書館智慧金鑰之試煉</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    :root {
+      --parchment: #fcf5e5;
+      --parchment-border: #8c6d3f;
+      --magic-gold: #fbbf24;
+      --magic-purple: #7e22ce;
+      --magic-blue: #3b82f6;
+    }
+
+    body {
+      background: radial-gradient(circle at center, #1e1b4b 0%, #0f172a 100%);
+      min-height: 100vh;
+      color: #e2e8f0;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* 星空魔法粒子背景 */
+    .stars-bg {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none;
+      background: radial-gradient(2px 2px at 20px 30px, #ffffff, rgba(0,0,0,0)),
+                  radial-gradient(2px 2px at 40px 70px, #fbbf24, rgba(0,0,0,0)),
+                  radial-gradient(1px 1px at 90px 40px, #ffffff, rgba(0,0,0,0)),
+                  radial-gradient(2px 2px at 160px 120px, #a855f7, rgba(0,0,0,0));
+      background-repeat: repeat;
+      background-size: 250px 250px;
+      opacity: 0.6;
+      animation: sparkleStars 4s infinite alternate;
+    }
+
+    @keyframes sparkleStars {
+      0% { opacity: 0.4; transform: scale(1); }
+      100% { opacity: 0.8; transform: scale(1.02); }
+    }
+
+    .magic-container {
+      max-width: 800px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      position: relative;
+      z-index: 10;
+    }
+
+    /* 飛入的入學信封卡片 */
+    .letter-card {
+      background: var(--parchment);
+      color: #3b2a1a;
+      border: 4px double var(--parchment-border);
+      border-radius: 16px;
+      padding: 2.5rem 2rem;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(251, 191, 36, 0.3);
+      position: relative;
+      transform: translateY(-50px) scale(0.9);
+      opacity: 0;
+      animation: flyInLetter 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes flyInLetter {
+      0% { opacity: 0; transform: translateY(-100px) rotate(-3deg) scale(0.8); }
+      100% { opacity: 1; transform: translateY(0) rotate(0deg) scale(1); }
+    }
+
+    /* 火漆章火漆封印 */
+    .wax-seal {
+      width: 70px;
+      height: 70px;
+      background: radial-gradient(circle at 30% 30%, #dc2626, #991b1b);
+      border-radius: 50%;
+      position: absolute;
+      top: -35px;
+      right: 40px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5), inset 0 2px 5px rgba(255,255,255,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fef08a;
+      font-size: 1.8rem;
+      border: 3px solid #7f1d1d;
+      animation: pulseSeal 2s infinite;
+    }
+
+    @keyframes pulseSeal {
+      0%, 100% { transform: scale(1); box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+      50% { transform: scale(1.06); box-shadow: 0 0 25px rgba(251, 191, 36, 0.6); }
+    }
+
+    /* 自動寫字與鵝毛筆動畫效果 */
+    .quill-pen {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      font-size: 2.5rem;
+      pointer-events: none;
+      animation: quillMoving 1.5s ease-in-out infinite alternate;
+      display: none;
+    }
+
+    @keyframes quillMoving {
+      0% { transform: translate(0, 0) rotate(0deg); }
+      100% { transform: translate(-15px, 10px) rotate(-10deg); }
+    }
+
+    .story-text {
+      font-family: "Georgia", "Noto Serif TC", serif;
+      font-size: 1.05rem;
+      line-height: 1.95;
+      color: #291e13;
+      white-space: pre-line;
+      margin-bottom: 2rem;
+      min-height: 200px;
+    }
+
+    .typewriter-cursor {
+      display: inline-block;
+      width: 3px;
+      height: 1.2rem;
+      background: var(--parchment-border);
+      margin-left: 2px;
+      animation: blinkCursor 0.8s infinite;
+      vertical-align: middle;
+    }
+
+    @keyframes blinkCursor {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    .portal-btn-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    @media (max-width: 600px) {
+      .portal-btn-group {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .magic-btn {
+      padding: 1.1rem;
+      font-size: 1.1rem;
+      font-weight: 700;
+      border-radius: 12px;
+      border: 2px solid var(--magic-gold);
+      cursor: pointer;
+      transition: all 0.3s;
+      text-decoration: none;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+
+    .magic-btn-student {
+      background: linear-gradient(135deg, #7e22ce, #4c1d95);
+      color: #fff;
+    }
+
+    .magic-btn-student:hover {
+      background: linear-gradient(135deg, #9333ea, #6b21a8);
+      transform: translateY(-3deg);
+      box-shadow: 0 8px 25px rgba(168, 85, 247, 0.5);
+    }
+
+    .magic-btn-dashboard {
+      background: linear-gradient(135deg, #1e3a8a, #1e1b4b);
+      color: #fbbf24;
+      border-color: #fbbf24;
+    }
+
+    .magic-btn-dashboard:hover {
+      background: linear-gradient(135deg, #2563eb, #1e40af);
+      transform: translateY(-3deg);
+      box-shadow: 0 8px 25px rgba(59, 130, 246, 0.5);
+    }
+
+    .sound-control {
+      position: fixed;
+      top: 15px;
+      right: 15px;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--magic-gold);
+      color: var(--magic-gold);
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      cursor: pointer;
+      z-index: 100;
+      font-size: 0.85rem;
+      backdrop-filter: blur(5px);
+    }
+  </style>
 </head>
-<body style="align-items: center; justify-content: center; background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);">
+<body>
+  <div class="stars-bg"></div>
 
-  <div class="card" style="max-width: 520px; width: 90%; text-align: center; padding: 2.5rem 1.5rem;">
-    <div style="font-size: 3rem; margin-bottom: 0.5rem;">🏫📚</div>
-    <h1 style="font-size: 1.6rem; color: var(--gold); margin-bottom: 0.5rem;">國立員林家商圖書館</h1>
-    <h2 style="font-size: 1.1rem; color: var(--text-light); font-weight: 400; margin-bottom: 2rem;">
-      新生利用教育密室逃脫《失落的智慧金鑰》系統入口
-    </h2>
+  <!-- 背景魔法音樂控制按鈕 -->
+  <button id="btn-sound-toggle" class="sound-control">
+    🎵 魔法音樂：ON
+  </button>
 
-    <div style="display: flex; flex-direction: column; gap: 1rem;">
-      <a href="dashboard.html" class="btn btn-primary" style="padding: 1.1rem; font-size: 1.05rem; text-decoration: none;">
-        📺 1. 主控大螢幕即時排行榜 & 控場面板 (Leaderboard)
-      </a>
+  <div class="magic-container">
+    <div style="text-align: center; margin-bottom: 2rem;">
+      <h1 style="font-size: 2.2rem; color: var(--magic-gold); text-shadow: 0 0 15px rgba(251, 191, 36, 0.5); margin-bottom: 0.5rem;">
+        ✨ 員家魔法學院
+      </h1>
+      <p style="font-size: 1.1rem; color: #a5b4fc; letter-spacing: 2px;">
+        圖書館失落秘境與智慧金鑰之試煉
+      </p>
+    </div>
 
-      <a href="counter.html" class="btn btn-success" style="padding: 1.1rem; font-size: 1.05rem; text-decoration: none; background: linear-gradient(135deg, #059669, #10b981);">
-        💳 2. 二樓流通櫃檯過卡審核端 (條碼槍直刷/一鍵過卡)
-      </a>
+    <!-- 飛入的魔法入學信紙 -->
+    <div class="letter-card">
+      <div class="wax-seal">📜</div>
+      <div id="quill-pen" class="quill-pen">🪶</div>
 
-      <a href="student.html" class="btn" style="background: #334155; color: white; padding: 1.1rem; font-size: 1.05rem; text-decoration: none;">
-        📱 3. 學生手機掃碼闖關端 (Student App)
-      </a>
+      <h2 style="font-size: 1.4rem; color: #7c2d12; margin-bottom: 1rem; text-align: center; border-bottom: 2px dashed #b45309; padding-bottom: 0.75rem;">
+        ✉️ 高一魔法新生入學召集令
+      </h2>
+
+      <!-- 自動寫字故事內文容器 -->
+      <div id="story-container" class="story-text"></div>
+
+      <div class="portal-btn-group">
+        <a href="student.html" class="magic-btn magic-btn-student">
+          📱 進入學生魔法試煉端
+        </a>
+        <a href="dashboard.html" class="magic-btn magic-btn-dashboard">
+          📺 開啟大螢幕魔法看板
+        </a>
+      </div>
     </div>
   </div>
 
+  <script>
+    // 方案 A：沉浸式奇幻魔法故事全文
+    const FULL_STORY = `歡迎高一魔法新生！踏入員林家商的那一刻，你們已正式成為魔法世界的見習者。
+
+傳說在學院核心的「知識大圖書塔」（圖書館）深處，封印著古老賢者留下的「智慧金鑰」。這把金鑰能解除全校所有知識寶庫的禁忌，為持有者注入無上的探索魔力與學習天賦。
+
+賢者預言：「唯有智勇雙全、懂得合作的新生魔法小隊，方能解開圖書館 5 大神秘區域的古代封印——尋找館舍守護法則、召喚 WebOPAC 線上預言水晶、破解二樓書庫號段封印、解開期刊架歷史符文，並完成流通櫃台的終極過卡儀式！」
+
+新生們，握緊你們的手機魔杖，與小隊夥伴齊心協力，踏入試煉吧！`;
+
+    // 鵝毛筆自動打字效果
+    let textIndex = 0;
+    const storyElem = document.getElementById('story-container');
+    const quillElem = document.getElementById('quill-pen');
+
+    function typeStory() {
+      quillElem.style.display = 'block';
+      if (textIndex < FULL_STORY.length) {
+        storyElem.textContent = FULL_STORY.substring(0, textIndex + 1);
+        textIndex++;
+        
+        // 遇到換行或標點符號停頓
+        const char = FULL_STORY.charAt(textIndex - 1);
+        let delay = 35;
+        if (char === '！' || char === '。' || char === '\n') delay = 350;
+        
+        setTimeout(typeStory, delay);
+      } else {
+        quillElem.style.display = 'none';
+      }
+    }
+
+    setTimeout(typeStory, 1200);
+
+    // 音訊合成器 (Web Audio API - 純 JS 音效與魔法簡約背景音樂，零外部依賴)
+    let audioCtx = null;
+    let isMuted = false;
+    let musicInterval = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
+
+    function playMagicChime() {
+      if (isMuted || !audioCtx) return;
+      try {
+        const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51]; // C5, E5, G5, C6, E6
+        const now = audioCtx.currentTime;
+        notes.forEach((freq, i) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now + i * 0.15);
+          
+          gain.gain.setValueAtTime(0.08, now + i * 0.15);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.15 + 1.2);
+          
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          
+          osc.start(now + i * 0.15);
+          osc.stop(now + i * 0.15 + 1.3);
+        });
+      } catch (e) {}
+    }
+
+    const soundBtn = document.getElementById('btn-sound-toggle');
+    soundBtn.addEventListener('click', () => {
+      initAudio();
+      isMuted = !isMuted;
+      if (isMuted) {
+        soundBtn.textContent = "🔇 魔法音樂：OFF";
+        if (musicInterval) clearInterval(musicInterval);
+      } else {
+        soundBtn.textContent = "🎵 魔法音樂：ON";
+        playMagicChime();
+        musicInterval = setInterval(playMagicChime, 6000);
+      }
+    });
+
+    // 第一次點擊畫面啟動 Web Audio
+    document.body.addEventListener('click', () => {
+      initAudio();
+      if (!isMuted && !musicInterval) {
+        playMagicChime();
+        musicInterval = setInterval(playMagicChime, 6000);
+      }
+    }, { once: true });
+  </script>
 </body>
 </html>
