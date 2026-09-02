@@ -32,7 +32,7 @@
           👥 輸入隊名開始挑戰
         </h2>
         <p style="font-size: 0.88rem; color: var(--text-muted);">
-          請每組（2~4 人）由一名代表輸入隊名，系統將自動為您開啟 4 大關卡 (共 9 題) 闖關之旅：
+          請每組（2~4 人）由一名代表輸入隊名，系統將自動為您開啟 5 大關卡 (共 9 題) 闖關之旅：
         </p>
       </div>
 
@@ -79,7 +79,7 @@
     <div id="step-game" class="card" style="display: none;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
         <span id="level-badge" class="badge-tag badge-gold">
-          關卡一 館舍尋蹤 (1/3題 | 全場 1/9 題)
+          關卡一 館舍尋蹤 (1/2題 | 全場 1/9 題)
         </span>
         <!-- 地點資訊按照需求完全隱藏，避免學生直接得知地點線索 -->
         <span id="level-location" style="display: none;"></span>
@@ -125,7 +125,7 @@
       </p>
 
       <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 10px; font-size: 0.88rem; color: var(--secondary); margin-bottom: 1.5rem;">
-        ✨ 闖關總進度：已解答 <span id="level-clear-progress" style="color: var(--gold); font-weight: 700;">3</span> / 9 題
+        ✨ 闖關總進度：已解答 <span id="level-clear-progress" style="color: var(--gold); font-weight: 700;">2</span> / 9 題
       </div>
 
       <button id="btn-next-level" class="btn btn-success" style="font-size: 1.1rem; padding: 0.9rem;">
@@ -138,7 +138,7 @@
       <div style="font-size: 4rem; margin-bottom: 0.5rem;">🎉</div>
       <h2 style="font-size: 1.6rem; color: var(--gold); margin-bottom: 0.5rem;">恭喜全卡通關！</h2>
       <p style="font-size: 1rem; color: var(--text-muted); margin-bottom: 1.5rem;">
-        你們成功解答員林家商圖書館 9 大闖關考驗，獲得圖書館智慧金鑰！
+        你們成功解答員林家商圖書館 5 大關卡 9 大考驗，獲得圖書館智慧金鑰！
       </p>
 
       <div style="background: rgba(255,255,255,0.05); padding: 1.25rem; border-radius: 12px; margin-bottom: 1.5rem;">
@@ -219,11 +219,11 @@
         return;
       }
 
-      // 比賽中：檢查是否處於關卡通關過場節點 (stepIndex 為 3, 6, 8 且尚未點擊確認點)
+      // 比賽中：檢查是否處於關卡通關過場節點 (stepIndex 為 2, 4, 6, 8 且尚未點擊確認點)
       const stepIdx = typeof team.stepIndex === 'number' ? team.stepIndex : 0;
       const ackStep = parseInt(localStorage.getItem('ylhcvs_ack_step_' + currentTeamId) || '0');
 
-      if ((stepIdx === 3 || stepIdx === 6 || stepIdx === 8) && ackStep < stepIdx) {
+      if ((stepIdx === 2 || stepIdx === 4 || stepIdx === 6 || stepIdx === 8) && ackStep < stepIdx) {
         document.getElementById('step-register').style.display = 'none';
         document.getElementById('step-waiting').style.display = 'none';
         document.getElementById('step-game').style.display = 'none';
@@ -231,9 +231,10 @@
         document.getElementById('step-complete').style.display = 'none';
 
         const clearInfo = {
-          3: { title: "🎉 恭喜通過【關卡一：館舍尋蹤】！", desc: "你們成功探索 1 樓館舍規定的 3 大謎題，獲得前往第二關的解謎權限！", nextName: "關卡二：OPAC 線上檢索" },
-          6: { title: "🎉 恭喜通過【關卡二：WebOPAC 線上檢索】！", desc: "你們成功在 WebOPAC 檢索系統查出 3 大圖書密碼，獲得前往第三關的解謎權限！", nextName: "關卡三：二樓書庫尋寶" },
-          8: { title: "🎉 恭喜通過【關卡三：二樓書庫尋寶】！", desc: "你們成功在二樓書庫特定號段收集到 2 組字母暗號，獲得前往終極第五關的解謎權限！", nextName: "關卡五：流通櫃台過卡" }
+          2: { title: "🎉 恭喜通過【關卡一：館舍尋蹤】！", desc: "你們成功探索 1 樓館舍規定的 2 大謎題，獲得前往第二關的解謎權限！", nextName: "關卡二：OPAC 線上檢索" },
+          4: { title: "🎉 恭喜通過【關卡二：WebOPAC 線上檢索】！", desc: "你們成功在 WebOPAC 檢索系統查出 2 大圖書密碼，獲得前往第三關的解謎權限！", nextName: "關卡三：二樓書庫尋寶" },
+          6: { title: "🎉 恭喜通過【關卡三：二樓書庫尋寶】！", desc: "你們成功在二樓書庫特定號段收集到 2 組字母暗號，獲得前往第四關的解謎權限！", nextName: "關卡四：期刊架尋寶" },
+          8: { title: "🎉 恭喜通過【關卡四：期刊架尋寶】！", desc: "你們成功在當期與過期期刊區找到 2 本期刊架位代碼，獲得前往終極第五關的解謎權限！", nextName: "關卡五：流通櫃台過卡" }
         };
 
         const currentClear = clearInfo[stepIdx];
@@ -258,7 +259,7 @@
 
       const qObj = qInfo.questionObj;
 
-      const levelNames = { 1: "關卡一 館舍尋蹤", 2: "關卡二 OPAC檢索", 3: "關卡三 二樓書庫", 5: "關卡五 流通櫃台" };
+      const levelNames = { 1: "關卡一 館舍尋蹤", 2: "關卡二 OPAC檢索", 3: "關卡三 二樓書庫", 4: "關卡四 期刊尋寶", 5: "關卡五 流通櫃台" };
       const currentLName = levelNames[qInfo.catLevel] || `關卡 ${qInfo.catLevel}`;
 
       document.getElementById('level-badge').textContent = `${currentLName} (${qInfo.levelSubStep}/${qInfo.levelSubTotal}題 | 全場 ${qInfo.stepNumber}/9 題)`;
