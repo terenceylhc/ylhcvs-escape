@@ -1,12 +1,11 @@
 /**
- * 員林家商圖書館密室逃脫 - 全域通訊與狀態控制核心 (App Core v52.0 - 出題數自訂版：3+3+1+3+1=11題)
+ * 員林家商圖書館密室逃脫 - 全域通訊與狀態控制核心 (App Core v53.0 - 11題精準驗證與舊測試快取自動修復)
  * 出題配置：
- * 關卡一：3 題 (隨機)
- * 關卡二：3 題 (隨機)
- * 關卡三：1 題 (輪替)
- * 關卡四：3 題 (隨機亂數防抄襲)
- * 關卡五：1 題 (輪替過卡)
- * 全場共 11 題！
+ * 關卡一：3 題 (隨機) -> 第 1, 2, 3 題 (答完第 3 題才觸發關卡一通關過場卡)
+ * 關卡二：3 題 (隨機) -> 第 4, 5, 6 題 (答完第 6 題觸發關卡二通關過場卡)
+ * 關卡三：1 題 (輪替) -> 第 7 題 (答完第 7 題觸發關卡三通關過場卡)
+ * 關卡四：3 題 (隨機) -> 第 8, 9, 10 題 (答完第 10 題觸發關卡四通關過場卡)
+ * 關卡五：1 題 (輪替過卡) -> 第 11 題 (答完第 11 題全卡通關)
  */
 
 const DEFAULT_QUESTIONS_POOL = [
@@ -637,8 +636,12 @@ class GameEngine {
     Object.values(state.teams).forEach(team => {
       team.levelSequence = [1, 2, 3, 4, 5];
 
+      // 自動升級與修正：確保舊小隊資料自動更新為最新的 11 題配額
       if (!team.assignedQuestionsList || !Array.isArray(team.assignedQuestionsList) || team.assignedQuestionsList.length !== 11 || team.assignedQuestionsList.some(q => !q)) {
         team.assignedQuestionsList = this.generateQuestionsListForTeam(team.groupNum || 1, state.questions);
+        if (typeof team.stepIndex === 'number' && team.stepIndex > 11) {
+          team.stepIndex = 0;
+        }
       }
       if (typeof team.stepIndex !== 'number') team.stepIndex = 0;
       if (!team.levelTimes) team.levelTimes = {};
@@ -760,13 +763,12 @@ class GameEngine {
   }
 
   /**
-   * 根據最新需求分配各小隊題目：
-   * 關卡 1：3 題 (隨機亂數防抄襲)
-   * 關卡 2：3 題 (隨機亂數防抄襲)
-   * 關卡 3：1 題 (按組別輪替)
-   * 關卡 4：3 題 (隨機亂數防抄襲)
-   * 關卡 5：1 題 (按組別輪替實體書過卡)
-   * 全場共 11 題！
+   * 分配各小隊 11 題陣列：
+   * 關卡 1: 3 題 (第 1, 2, 3 題)
+   * 關卡 2: 3 題 (第 4, 5, 6 題)
+   * 關卡 3: 1 題 (第 7 題)
+   * 關卡 4: 3 題 (第 8, 9, 10 題)
+   * 關卡 5: 1 題 (第 11 題)
    */
   generateQuestionsListForTeam(groupNum, questionsPool) {
     let pool = DEFAULT_QUESTIONS_POOL;
@@ -825,6 +827,9 @@ class GameEngine {
 
     const existingTeam = Object.values(this.state.teams).find(t => t.name === defaultName && !t.completed);
     if (existingTeam) {
+      if (!existingTeam.assignedQuestionsList || existingTeam.assignedQuestionsList.length !== 11) {
+        existingTeam.assignedQuestionsList = this.generateQuestionsListForTeam(existingTeam.groupNum || 1, this.state.questions);
+      }
       return existingTeam;
     }
 
@@ -902,18 +907,18 @@ class GameEngine {
     let levelSubStep = 1;
     let levelSubTotal = 1;
 
-    // 出題配額：L1(3題), L2(3題), L3(1題), L4(3題), L5(1題) -> 全場共11題
+    // 出題配額：L1(3題: 0,1,2), L2(3題: 3,4,5), L3(1題: 6), L4(3題: 7,8,9), L5(1題: 10) -> 全場共11題
     if (catLevel === 1) {
-      levelSubStep = stepIdx + 1;
+      levelSubStep = stepIdx + 1; // 1, 2, 3
       levelSubTotal = 3;
     } else if (catLevel === 2) {
-      levelSubStep = stepIdx - 3 + 1;
+      levelSubStep = stepIdx - 3 + 1; // 1, 2, 3
       levelSubTotal = 3;
     } else if (catLevel === 3) {
       levelSubStep = 1;
       levelSubTotal = 1;
     } else if (catLevel === 4) {
-      levelSubStep = stepIdx - 7 + 1;
+      levelSubStep = stepIdx - 7 + 1; // 1, 2, 3
       levelSubTotal = 3;
     } else if (catLevel === 5) {
       levelSubStep = 1;
