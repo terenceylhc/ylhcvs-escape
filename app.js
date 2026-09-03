@@ -62,15 +62,7 @@ const DEFAULT_QUESTIONS_POOL = [
     hint: "提示：視聽影音借閱上限部數=2，影音借期週數=? 員家藝廊在幾樓?",
     question: "請參閱本館介紹，計算：(視聽影音借閱上限部數 × 影音借期週數) + 員家藝廊樓層 ＝ ？"
   },
-  {
-    id: "q_1_7",
-    categoryLevel: 1,
-    title: "關卡一：【期刊過刊借期算式】",
-    location: "閱覽室過刊區",
-    answer: "6",
-    hint: "提示：期刊借閱上限冊數=5，過刊借期週數=1",
-    question: "請參閱本館介紹，計算：(期刊借閱上限冊數 × 期刊過刊借期週數) + 1 ＝ ？"
-  },
+
   {
     id: "q_1_8",
     categoryLevel: 1,
@@ -118,15 +110,7 @@ const DEFAULT_QUESTIONS_POOL = [
     hint: "提示：請在 WebOPAC 輸入書名《大腦的主張》，點入詳細頁面查看作者姓名與出版年份！",
     question: "📖 請在 WebOPAC 搜尋《大腦的主張》，將【作者姓名】+【出版年份】拼湊成暗號："
   },
-  {
-    id: "q_2_3",
-    categoryLevel: 2,
-    title: "關卡二：【OPAC 檢索：《211彩虹瘦身餐盤》】",
-    location: "電腦查詢區 / 手機 (WebOPAC)",
-    answer: ["王麗蓉2024", "王麗蓉24", "王麗容2024", "王麗容24"],
-    hint: "提示：請在 WebOPAC 輸入書名《211彩虹瘦身餐盤》，點入詳細頁面查看作者姓名與出版年份！",
-    question: "🥗 請在 WebOPAC 搜尋《211彩虹瘦身餐盤》，將【作者姓名】+【出版年份】拼湊成暗號："
-  },
+
   {
     id: "q_2_4",
     categoryLevel: 2,
