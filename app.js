@@ -123,7 +123,7 @@ const DEFAULT_QUESTIONS_POOL = [
     categoryLevel: 2,
     title: "關卡二：【OPAC 檢索：《211彩虹瘦身餐盤》】",
     location: "電腦查詢區 / 手機 (WebOPAC)",
-    answer: ["王麗蓉2024", "王麗蓉24"],
+    answer: ["王麗蓉2024", "王麗蓉24", "王麗容2024", "王麗容24"],
     hint: "提示：請在 WebOPAC 輸入書名《211彩虹瘦身餐盤》，點入詳細頁面查看作者姓名與出版年份！",
     question: "🥗 請在 WebOPAC 搜尋《211彩虹瘦身餐盤》，將【作者姓名】+【出版年份】拼湊成暗號："
   },
@@ -626,9 +626,8 @@ class GameEngine {
     if (!rawState) return JSON.parse(JSON.stringify(DEFAULT_STATE));
     const state = rawState;
     if (!state.teams) state.teams = {};
-    if (!state.questions || !Array.isArray(state.questions) || state.questions.length === 0) {
-      state.questions = DEFAULT_QUESTIONS_POOL;
-    }
+    // 強制將 state.questions 鎖定為最新之 DEFAULT_QUESTIONS_POOL，避免 Firebase 舊快取蓋掉新答案
+    state.questions = DEFAULT_QUESTIONS_POOL;
     if (!state.status) state.status = 'setup';
     if (!state.winningQuota) state.winningQuota = 3;
     if (!state.resetTimestamp) state.resetTimestamp = 0;
@@ -769,13 +768,8 @@ class GameEngine {
   }
 
   generateQuestionsListForTeam(groupNum, questionsPool) {
-    let pool = DEFAULT_QUESTIONS_POOL;
-    if (Array.isArray(questionsPool) && questionsPool.length > 0) {
-      const validFiltered = questionsPool.filter(q => q != null && typeof q === 'object' && q.categoryLevel);
-      if (validFiltered.length >= 10) {
-        pool = validFiltered;
-      }
-    }
+    // 強制一律使用最新定義之 DEFAULT_QUESTIONS_POOL 抽題
+    const pool = DEFAULT_QUESTIONS_POOL;
 
     const cat1 = pool.filter(q => q && q.categoryLevel === 1);
     const cat2 = pool.filter(q => q && q.categoryLevel === 2);
@@ -878,6 +872,16 @@ class GameEngine {
     return (password || '').trim() === '280282';
   }
 
+  getLatestQuestionObj(rawQ) {
+    if (!rawQ) return null;
+    const qid = rawQ.id || (typeof rawQ === 'string' ? rawQ : null);
+    if (qid) {
+      const latest = DEFAULT_QUESTIONS_POOL.find(q => q.id === qid);
+      if (latest) return latest;
+    }
+    return rawQ;
+  }
+
   getCurrentQuestionForTeam(teamId) {
     const team = this.state.teams[teamId];
     if (!team) return null;
@@ -889,8 +893,9 @@ class GameEngine {
       return null;
     }
 
-    const currentQ = qList[stepIdx];
-    if (!currentQ) return null;
+    const rawQ = qList[stepIdx];
+    if (!rawQ) return null;
+    const currentQ = this.getLatestQuestionObj(rawQ);
 
     const catLevel = currentQ.categoryLevel || 1;
 
@@ -955,9 +960,10 @@ class GameEngine {
 
     const qList = team.assignedQuestionsList || [];
     const stepIdx = typeof team.stepIndex === 'number' ? team.stepIndex : 0;
-    const currentQ = qList[stepIdx];
+    const rawQ = qList[stepIdx];
     
-    if (!currentQ) return { success: false, message: "關卡資料異常" };
+    if (!rawQ) return { success: false, message: "關卡資料異常" };
+    const currentQ = this.getLatestQuestionObj(rawQ);
 
     if (this.checkAnswerMatch(answerInput, currentQ.answer)) {
       const now = Date.now();
