@@ -68,7 +68,7 @@ const DEFAULT_QUESTIONS_POOL = [
     title: "關卡一：【期刊過刊借期算式】",
     location: "閱覽室過刊區",
     answer: "6",
-    hint: "提示：期刊借閱上限冊數=5，過刊借期週數=?",
+    hint: "提示：期刊借閱上限冊數=5，過刊借期週數=1",
     question: "請參閱本館介紹，計算：(期刊借閱上限冊數 × 期刊過刊借期週數) + 1 ＝ ？"
   },
   {
@@ -299,8 +299,8 @@ const DEFAULT_QUESTIONS_POOL = [
     title: "關卡四：【期刊架尋寶】",
     location: "當期期刊區 / 過期期刊區",
     answer: "11",
-    hint: "提示：新小牛頓代號 A10 (數字=10)，財訊代號 C1 (數字=1)，再把兩個數字相加=11。",
-    question: "📰 請至當期期刊區或過期期刊區，尋找《新小牛頓》與《財訊》，將兩本期刊架位代號的【數字部分相加】作為密碼："
+    hint: "提示：請前往期刊區找出《新小牛頓》(A10) 與《財訊》(C1)，將兩本期刊架位代號的數字部分相加(10+1=11)！",
+    question: "📰 請至當期期刊區或過期期刊區，尋找架位【A10】與【C1】兩本期刊，將兩本期刊架位代號的【數字部分相加】作為密碼："
   },
   {
     id: "q_4_2",
@@ -308,8 +308,8 @@ const DEFAULT_QUESTIONS_POOL = [
     title: "關卡四：【期刊架尋寶】",
     location: "當期期刊區 / 過期期刊區",
     answer: "15",
-    hint: "提示：康健代號 B9 (數字=9)，少年牛頓代號 C6 (數字=6)，再把兩個數字相加=15。",
-    question: "📰 請至當期期刊區或過期期刊區，尋找《康健》與《少年牛頓》，將兩本期刊架位代號的【數字部分相加】作為密碼："
+    hint: "提示：請前往期刊區找出《康健》(B9) 與《少年牛頓》(C6)，將兩本期刊架位代號的數字部分相加(9+6=15)！",
+    question: "📰 請至當期期刊區或過期期刊區，尋找架位【B9】與【C6】兩本期刊，將兩本期刊架位代號的【數字部分相加】作為密碼："
   },
   {
     id: "q_4_3",
@@ -317,8 +317,8 @@ const DEFAULT_QUESTIONS_POOL = [
     title: "關卡四：【期刊架尋寶】",
     location: "當期期刊區 / 過期期刊區",
     answer: "23",
-    hint: "提示：國家地理代號 C17 (數字=17)，鄉間小路代號 B6 (數字=6)，再把兩個數字相加=23。",
-    question: "📰 請至當期期刊區或過期期刊區，尋找《國家地理》與《鄉間小路》，將兩本期刊架位代號的【數字部分相加】作為密碼："
+    hint: "提示：請前往期刊區找出《國家地理》(C17) 與《鄉間小路》(B6)，將兩本期刊架位代號的數字部分相加(17+6=23)！",
+    question: "📰 請至當期期刊區或過期期刊區，尋找架位【C17】與【B6】兩本期刊，將兩本期刊架位代號的【數字部分相加】作為密碼："
   },
   {
     id: "q_4_4",
@@ -326,8 +326,8 @@ const DEFAULT_QUESTIONS_POOL = [
     title: "關卡四：【期刊架尋寶】",
     location: "當期期刊區 / 過期期刊區",
     answer: "17",
-    hint: "提示：商業周刊代號 C9 (數字=9)，美麗佳人代號 A8 (數字=8)，再把兩個數字相加=17。",
-    question: "📰 請至當期期刊區或過期期刊區，尋找《商業周刊》與《美麗佳人》，將兩本期刊架位代號的【數字部分相加】作為密碼："
+    hint: "提示：請前往期刊區找出《商業周刊》(C9) 與《美麗佳人》(A8)，將兩本期刊架位代號的數字部分相加(9+8=17)！",
+    question: "📰 請至當期期刊區或過期期刊區，尋找架位【C9】與【A8】兩本期刊，將兩本期刊架位代號的【數字部分相加】作為密碼："
   },
   {
     id: "q_4_5",
@@ -335,8 +335,8 @@ const DEFAULT_QUESTIONS_POOL = [
     title: "關卡四：【期刊架尋寶】",
     location: "當期期刊區 / 過期期刊區",
     answer: "26",
-    hint: "提示：料理台灣代號 A14 (數字=14)，經典代號 C12 (數字=12)，再把兩個數字相加=26。",
-    question: "📰 請至當期期刊區或過期期刊區，尋找《料理台灣》與《經典》，將兩本期刊架位代號的【數字部分相加】作為密碼："
+    hint: "提示：請前往期刊區找出《料理台灣》(A14) 與《經典》(C12)，將兩本期刊架位代號的數字部分相加(14+12=26)！",
+    question: "📰 請至當期期刊區或過期期刊區，尋找架位【A14】與【C12】兩本期刊，將兩本期刊架位代號的【數字部分相加】作為密碼："
   },
   {
     id: "q_4_6",
@@ -344,8 +344,8 @@ const DEFAULT_QUESTIONS_POOL = [
     title: "關卡四：【期刊架尋寶】",
     location: "當期期刊區 / 過期期刊區",
     answer: "17",
-    hint: "提示：遠見代號 B13 (數字=13)，皇冠代號 C4 (數字=4)，再把兩個數字相加=17。",
-    question: "📰 請至當期期刊區或過期期刊區，尋找《遠見》與《皇冠》，將兩本期刊架位代號的【數字部分相加】作為密碼："
+    hint: "提示：請前往期刊區找出《遠見》(B13) 與《皇冠》(C4)，將兩本期刊架位代號的數字部分相加(13+4=17)！",
+    question: "📰 請至當期期刊區或過期期刊區，尋找架位【B13】與【C4】兩本期刊，將兩本期刊架位代號的【數字部分相加】作為密碼："
   },
   {
     id: "q_4_7",
@@ -353,8 +353,8 @@ const DEFAULT_QUESTIONS_POOL = [
     title: "關卡四：【期刊架尋寶】",
     location: "當期期刊區 / 過期期刊區",
     answer: "15",
-    hint: "提示：天下代號 B12 (數字=12)，今周刊代號數字部分是多少呢? 再把兩個數字相加=?。",
-    question: "📰 請至當期期刊區或過期期刊區，尋找《天下》與《今周刊》，將兩本期刊架位代號的【數字部分相加】作為密碼："
+    hint: "提示：請前往期刊區找出《天下》(B12) 與《今周刊》(C3)，將兩本期刊架位代號的數字部分相加(12+3=15)！",
+    question: "📰 請至當期期刊區或過期期刊區，尋找架位【B12】與【C3】兩本期刊，將兩本期刊架位代號的【數字部分相加】作為密碼："
   },
   {
     id: "q_4_8",
@@ -928,11 +928,20 @@ class GameEngine {
   }
 
   checkAnswerMatch(userInput, expectedAnswer) {
-    const cleanInput = (userInput || '').trim().toLowerCase();
+    const normalize = (str) => {
+      if (!str) return '';
+      return String(str)
+        .replace(/[\uFF01-\uFF5E]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xfee0))
+        .replace(/\u3000/g, ' ')
+        .trim()
+        .toLowerCase();
+    };
+
+    const cleanInput = normalize(userInput);
     if (Array.isArray(expectedAnswer)) {
-      return expectedAnswer.some(ans => String(ans || '').trim().toLowerCase() === cleanInput);
+      return expectedAnswer.some(ans => normalize(ans) === cleanInput);
     }
-    return String(expectedAnswer || '').trim().toLowerCase() === cleanInput;
+    return normalize(expectedAnswer) === cleanInput;
   }
 
   submitAnswer(teamId, answerInput) {
