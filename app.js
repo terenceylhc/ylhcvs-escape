@@ -783,15 +783,21 @@ class GameEngine {
     const safeCat4 = cat4.length >= 3 ? cat4 : DEFAULT_QUESTIONS_POOL.filter(q => q.categoryLevel === 4);
     const safeCat5 = cat5.length >= 1 ? cat5 : DEFAULT_QUESTIONS_POOL.filter(q => q.categoryLevel === 5);
 
-    const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
+    // 費雪-葉茲 (Fisher-Yates / Knuth) 真正數學公正隨機洗牌演算法 (徹底解決 JS .sort 偏向前幾題瑕疵)
+    const shuffle = (arr) => {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    };
 
     const qL1 = shuffle(safeCat1).slice(0, 3);
     const qL2 = shuffle(safeCat2).slice(0, 3);
-    const offset3 = (groupNum - 1) % (safeCat3.length || 11);
-    const qL3 = [safeCat3[offset3] || safeCat3[0]];
+    const qL3 = shuffle(safeCat3).slice(0, 1);
     const qL4 = shuffle(safeCat4).slice(0, 3);
-    const offset5 = (groupNum - 1) % (safeCat5.length || 10);
-    const qL5 = [safeCat5[offset5] || safeCat5[0]];
+    const qL5 = shuffle(safeCat5).slice(0, 1);
 
     const result = [...qL1, ...qL2, ...qL3, ...qL4, ...qL5].filter(q => q != null);
 
