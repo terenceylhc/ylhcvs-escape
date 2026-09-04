@@ -593,7 +593,9 @@ const DEFAULT_STATE = {
   startTime: null,
   questions: DEFAULT_QUESTIONS_POOL,
   teams: {},
-  resetTimestamp: Date.now()
+  resetTimestamp: Date.now(),
+  randomOffset3: Math.floor(Math.random() * 11),
+  randomOffset5: Math.floor(Math.random() * 10)
 };
 
 class GameEngine {
@@ -631,6 +633,8 @@ class GameEngine {
     if (!state.status) state.status = 'setup';
     if (!state.winningQuota) state.winningQuota = 3;
     if (!state.resetTimestamp) state.resetTimestamp = 0;
+    if (typeof state.randomOffset3 !== 'number') state.randomOffset3 = Math.floor(Math.random() * 11);
+    if (typeof state.randomOffset5 !== 'number') state.randomOffset5 = Math.floor(Math.random() * 10);
 
     Object.values(state.teams).forEach(team => {
       team.levelSequence = [1, 2, 3, 4, 5];
@@ -795,9 +799,17 @@ class GameEngine {
 
     const qL1 = shuffle(safeCat1).slice(0, 3);
     const qL2 = shuffle(safeCat2).slice(0, 3);
-    const qL3 = shuffle(safeCat3).slice(0, 1);
     const qL4 = shuffle(safeCat4).slice(0, 3);
-    const qL5 = shuffle(safeCat5).slice(0, 1);
+
+    // 方案 B：關卡三與關卡五採用「全班隨機起點 + 100% 人流錯開不撞題」
+    const baseOffset3 = (this.state && typeof this.state.randomOffset3 === 'number') ? this.state.randomOffset3 : 0;
+    const baseOffset5 = (this.state && typeof this.state.randomOffset5 === 'number') ? this.state.randomOffset5 : 0;
+
+    const idx3 = (groupNum - 1 + baseOffset3) % safeCat3.length;
+    const idx5 = (groupNum - 1 + baseOffset5) % safeCat5.length;
+
+    const qL3 = [safeCat3[idx3] || safeCat3[0]];
+    const qL5 = [safeCat5[idx5] || safeCat5[0]];
 
     const result = [...qL1, ...qL2, ...qL3, ...qL4, ...qL5].filter(q => q != null);
 
@@ -871,6 +883,8 @@ class GameEngine {
     this.state.startTime = null;
     this.state.teams = {};
     this.state.resetTimestamp = now;
+    this.state.randomOffset3 = Math.floor(Math.random() * 11);
+    this.state.randomOffset5 = Math.floor(Math.random() * 10);
     this.saveState();
   }
 
