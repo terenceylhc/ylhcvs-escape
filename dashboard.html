@@ -221,25 +221,26 @@
     let timerInterval = null;
 
     // 自動生成學生端 URL 與 QR Code
+    // 自動生成學生端 URL 與 QR Code (導向 index.html 入口)
     function initQRCode() {
       let currentUrl = window.location.href;
-      let studentUrl = '';
+      let targetUrl = '';
 
       if (currentUrl.includes('dashboard.html')) {
-        studentUrl = currentUrl.replace('dashboard.html', 'student.html');
+        targetUrl = currentUrl.replace('dashboard.html', 'index.html');
       } else {
-        studentUrl = currentUrl.replace(/\/$/, '') + '/student.html';
+        targetUrl = currentUrl.replace(/\/$/, '') + '/index.html';
       }
 
-      document.getElementById('db-student-url').textContent = studentUrl;
-      const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(studentUrl)}`;
+      document.getElementById('db-student-url').textContent = targetUrl;
+      const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(targetUrl)}`;
       document.getElementById('db-qrcode-img').src = qrApiUrl;
 
       document.getElementById('btn-copy-url').onclick = () => {
-        navigator.clipboard.writeText(studentUrl).then(() => {
+        navigator.clipboard.writeText(targetUrl).then(() => {
           alert("已成功複製報到網址至剪貼簿！");
         }).catch(() => {
-          prompt("請複製以下網址：", studentUrl);
+          prompt("請複製以下網址：", targetUrl);
         });
       };
     }
