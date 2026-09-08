@@ -229,6 +229,7 @@
   <script>
     let currentTeamId = localStorage.getItem('ylhcvs_current_team_id') || null;
     let pendingNextStep = false; // 是否在等待學生關閉回饋彈窗後進入下一題
+    let lastActiveQuestionId = null; // 記錄當前顯示的題目 ID，防止全域廣播重繪時自動清空文字
 
     // 顯示答題動態回饋 Modal
     function showAnswerFeedback(isCorrect, titleText, msgText) {
@@ -442,7 +443,14 @@
         hintBox.style.display = 'none';
       }
 
-      document.getElementById('input-answer').value = '';
+      // 僅在切換到「全新題目」時清空輸入框，廣播於「同一題」重繪時完好保留學生已輸入之文字
+      const ansInput = document.getElementById('input-answer');
+      if (ansInput) {
+        if (lastActiveQuestionId !== qObj.id) {
+          ansInput.value = '';
+          lastActiveQuestionId = qObj.id;
+        }
+      }
       document.getElementById('error-msg').style.display = 'none';
     }
 
@@ -477,6 +485,7 @@
 
     document.getElementById('btn-re-register').addEventListener('click', () => {
       currentTeamId = null;
+      lastActiveQuestionId = null;
       localStorage.removeItem('ylhcvs_current_team_id');
       renderStudentUI(window.gameEngine.state);
     });
