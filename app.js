@@ -555,13 +555,13 @@ const DEFAULT_QUESTIONS_POOL = [
   {
     id: "q_5_8",
     categoryLevel: 5,
-    title: "關卡五：【流通櫃台過卡：《這幅畫,原來要看這裡》】",
+    title: "關卡五：【流通櫃台過卡：《世界太boring，我們需要文藝復興》】",
     location: "2 樓 流通櫃台",
-    bookTitle: "《這幅畫,原來要看這裡》",
-    barcode: "051115",
-    answer: ["051115", "PASS888", "999"],
-    hint: "💡 提示：請先使用員林家商圖書館館藏查詢系統查詢指定圖書《這幅畫,原來要看這裡》的索書號與架位，至二樓書庫找到該實體書後，全組持學生證與書籍至二樓流通櫃台向館員刷條碼過卡！",
-    question: "🏆 請全組持學生證與指定圖書《這幅畫,原來要看這裡》至二樓流通櫃台向館員刷條碼過卡："
+    bookTitle: "《世界太boring，我們需要文藝復興》",
+    barcode: "054178",
+    answer: ["054178", "PASS888", "999"],
+    hint: "💡 提示：請先使用員林家商圖書館館藏查詢系統查詢指定圖書《世界太boring，我們需要文藝復興》的索書號與架位，至二樓書庫找到該實體書後，全組持學生證與書籍至二樓流通櫃台向館員刷條碼過卡！",
+    question: "🏆 請全組持學生證與指定圖書《世界太boring，我們需要文藝復興》至二樓流通櫃台向館員刷條碼過卡："
   },
   {
     id: "q_5_9",
@@ -577,13 +577,35 @@ const DEFAULT_QUESTIONS_POOL = [
   {
     id: "q_5_10",
     categoryLevel: 5,
-    title: "關卡五：【流通櫃台過卡：《門神的故事》】",
+    title: "關卡五：【流通櫃台過卡：《不生病的藏傳紓壓術:療癒身心靈的預防醫學》】",
     location: "2 樓 流通櫃台",
-    bookTitle: "《門神的故事》",
-    barcode: "025809",
-    answer: ["025809", "A216422", "216422", "PASS888", "999"],
-    hint: "💡 提示：請先使用員林家商圖書館館藏查詢系統查詢指定圖書《門神的故事》的索書號與架位，至二樓書庫找到該實體書後，全組持學生證與書籍至二樓流通櫃台向館員刷條碼過卡，獲取智慧金鑰！",
-    question: "🏆 請全組持學生證與指定圖書《門神的故事》至二樓流通櫃台向館員刷條碼過卡，獲取智慧金鑰！"
+    bookTitle: "《不生病的藏傳紓壓術:療癒身心靈的預防醫學》",
+    barcode: "1056368",
+    answer: ["1056368", "PASS888", "999"],
+    hint: "💡 提示：請先使用員林家商圖書館館藏查詢系統查詢指定圖書《不生病的藏傳紓壓術:療癒身心靈的預防醫學》的索書號與架位，至二樓書庫找到該實體書後，全組持學生證與書籍至二樓流通櫃台向館員刷條碼過卡，獲取智慧金鑰！",
+    question: "🏆 請全組持學生證與指定圖書《不生病的藏傳紓壓術:療癒身心靈的預防醫學》至二樓流通櫃台向館員刷條碼過卡，獲取智慧金鑰！"
+  },
+  {
+    id: "q_5_11",
+    categoryLevel: 5,
+    title: "關卡五：【流通櫃台過卡：《如果記憶中沒有了你》】",
+    location: "2 樓 流通櫃台",
+    bookTitle: "《如果記憶中沒有了你》",
+    barcode: "1055001",
+    answer: ["1055001", "PASS888", "999"],
+    hint: "💡 提示：請先使用員林家商圖書館館藏查詢系統查詢指定圖書《如果記憶中沒有了你》的索書號與架位，至二樓書庫找到該實體書後，全組持學生證與書籍至二樓流通櫃台向館員刷條碼過卡！",
+    question: "🏆 請全組持學生證與指定圖書《如果記憶中沒有了你》至二樓流通櫃台向館員刷條碼過卡："
+  },
+  {
+    id: "q_5_12",
+    categoryLevel: 5,
+    title: "關卡五：【流通櫃台過卡：《別在稻殼堆中找麥粒》】",
+    location: "2 樓 流通櫃台",
+    bookTitle: "《別在稻殼堆中找麥粒》",
+    barcode: "045756",
+    answer: ["045756", "PASS888", "999"],
+    hint: "💡 提示：請先使用員林家商圖書館館藏查詢系統查詢指定圖書《別在稻殼堆中找麥粒》的索書號與架位，至二樓書庫找到該實體書後，全組持學生證與書籍至二樓流通櫃台向館員刷條碼過卡！",
+    question: "🏆 請全組持學生證與指定圖書《別在稻殼堆中找麥粒》至二樓流通櫃台向館員刷條碼過卡："
   }
 ];
 
@@ -595,8 +617,9 @@ const DEFAULT_STATE = {
   teams: {},
   resetTimestamp: Date.now(),
   randomOffset3: Math.floor(Math.random() * 11),
-  randomOffset5: Math.floor(Math.random() * 10)
+  randomOffset5: Math.floor(Math.random() * 12)
 };
+
 
 class GameEngine {
   constructor() {
@@ -884,7 +907,7 @@ class GameEngine {
     this.state.teams = {};
     this.state.resetTimestamp = now;
     this.state.randomOffset3 = Math.floor(Math.random() * 11);
-    this.state.randomOffset5 = Math.floor(Math.random() * 10);
+    this.state.randomOffset5 = Math.floor(Math.random() * 12);
     this.saveState();
   }
 
